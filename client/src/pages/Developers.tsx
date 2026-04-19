@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import ConfirmModal from '../components/ConfirmModal';
 import type { Developer } from '../types';
 
 export default function People() {
@@ -8,6 +9,7 @@ export default function People() {
   const [showForm, setShowForm] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState({ name: '', role: '' });
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     const { data } = await supabase.from('developers').select('*').eq('archived', showArchived).order('name');
@@ -29,14 +31,17 @@ export default function People() {
     load();
   }
 
-  async function deletePerson(id: string) {
-    if (!confirm('Delete this person permanently?')) return;
-    await supabase.from('developers').delete().eq('id', id);
-    load();
+  function deletePerson(id: string) {
+    setConfirm({ message: 'Delete this person permanently?', onConfirm: async () => {
+      await supabase.from('developers').delete().eq('id', id);
+      setConfirm(null);
+      load();
+    }});
   }
 
   return (
     <div>
+      {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       <div className="page-header">
         <h1>People</h1>
         <div className="header-actions">

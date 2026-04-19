@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import ConfirmModal from '../components/ConfirmModal';
 
 type RequestStatus = 'pending' | 'in-progress' | 'done';
 
@@ -17,6 +18,7 @@ export default function Requests() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', status: 'pending' as RequestStatus });
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     const { data } = await supabase.from('requests').select('*').order('created_at', { ascending: false });
@@ -38,14 +40,17 @@ export default function Requests() {
     load();
   }
 
-  async function deleteRequest(id: string) {
-    if (!confirm('Delete this request permanently?')) return;
-    await supabase.from('requests').delete().eq('id', id);
-    load();
+  function deleteRequest(id: string) {
+    setConfirm({ message: 'Delete this request permanently?', onConfirm: async () => {
+      await supabase.from('requests').delete().eq('id', id);
+      setConfirm(null);
+      load();
+    }});
   }
 
   return (
     <div>
+      {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       <div className="page-header">
         <h1>Requests</h1>
         <button className="btn" onClick={() => setShowForm(s => !s)}>+ New Request</button>

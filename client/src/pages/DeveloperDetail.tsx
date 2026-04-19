@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import ConfirmModal from '../components/ConfirmModal';
 import type { Developer, DeveloperLog, Project } from '../types';
 
 type Tab = 'log' | 'projects';
@@ -12,6 +13,7 @@ export default function PersonDetail() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tab, setTab] = useState<Tab>('log');
   const [showForm, setShowForm] = useState(false);
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
   const [form, setForm] = useState({ notes: '', flagged: false, log_date: new Date().toISOString().split('T')[0] });
 
   async function load() {
@@ -48,15 +50,19 @@ export default function PersonDetail() {
     load();
   }
 
-  async function deleteLog(logId: string) {
-    await supabase.from('developer_logs').delete().eq('id', logId);
-    load();
+  function deleteLog(logId: string) {
+    setConfirm({ message: 'Delete this log entry?', onConfirm: async () => {
+      await supabase.from('developer_logs').delete().eq('id', logId);
+      setConfirm(null);
+      load();
+    }});
   }
 
   if (!person) return <div className="empty">Loading...</div>;
 
   return (
     <div>
+      {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       <div className="page-header">
         <div>
           <Link to="/developers" className="back-link">← People</Link>

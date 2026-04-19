@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import ConfirmModal from '../components/ConfirmModal';
 import type { Project, Task, ProjectLog, Developer, ProjectState, TaskStatus } from '../types';
 
 const STATES: ProjectState[] = ['pre-production', 'production', 'post-production'];
@@ -17,6 +18,7 @@ export default function ProjectDetail() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLogForm, setShowLogForm] = useState(false);
   const [editingState, setEditingState] = useState(false);
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     const [{ data: proj }, { data: taskData }, { data: logData }, { data: devData }] = await Promise.all([
@@ -59,16 +61,20 @@ export default function ProjectDetail() {
     load();
   }
 
-  async function deleteTask(taskId: string) {
-    if (!confirm('Delete this task permanently?')) return;
-    await supabase.from('tasks').delete().eq('id', taskId);
-    load();
+  function deleteTask(taskId: string) {
+    setConfirm({ message: 'Delete this task permanently?', onConfirm: async () => {
+      await supabase.from('tasks').delete().eq('id', taskId);
+      setConfirm(null);
+      load();
+    }});
   }
 
-  async function deleteLog(logId: string) {
-    if (!confirm('Delete this log entry?')) return;
-    await supabase.from('project_logs').delete().eq('id', logId);
-    load();
+  function deleteLog(logId: string) {
+    setConfirm({ message: 'Delete this log entry?', onConfirm: async () => {
+      await supabase.from('project_logs').delete().eq('id', logId);
+      setConfirm(null);
+      load();
+    }});
   }
 
   async function updateState(state: ProjectState) {
@@ -81,6 +87,7 @@ export default function ProjectDetail() {
 
   return (
     <div>
+      {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       <div className="page-header">
         <div>
           <Link to="/projects" className="back-link">← Projects</Link>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import ConfirmModal from '../components/ConfirmModal';
 import type { Project, ProjectState } from '../types';
 
 const STATES: ProjectState[] = ['pre-production', 'production', 'post-production'];
@@ -19,6 +20,7 @@ export default function Projects() {
   const [showForm, setShowForm] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', state: 'pre-production' as ProjectState, start_date: '', end_date: '' });
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     const { data } = await supabase.from('projects').select('*').eq('archived', showArchived).order('created_at', { ascending: false });
@@ -40,14 +42,17 @@ export default function Projects() {
     load();
   }
 
-  async function deleteProject(id: string) {
-    if (!confirm('Delete this project permanently?')) return;
-    await supabase.from('projects').delete().eq('id', id);
-    load();
+  function deleteProject(id: string) {
+    setConfirm({ message: 'Delete this project permanently?', onConfirm: async () => {
+      await supabase.from('projects').delete().eq('id', id);
+      setConfirm(null);
+      load();
+    }});
   }
 
   return (
     <div>
+      {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       <div className="page-header">
         <h1>Projects</h1>
         <div className="header-actions">
