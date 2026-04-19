@@ -56,12 +56,7 @@ export default function ProjectDetail() {
     load();
   }
 
-  async function archiveTask(taskId: string) {
-    await supabase.from('tasks').update({ archived: true }).eq('id', taskId);
-    load();
-  }
-
-  function deleteTask(taskId: string) {
+function deleteTask(taskId: string) {
     setConfirm({ message: 'Delete this task permanently?', onConfirm: async () => {
       await supabase.from('tasks').delete().eq('id', taskId);
       setConfirm(null);
