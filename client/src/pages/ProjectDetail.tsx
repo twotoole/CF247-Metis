@@ -150,7 +150,6 @@ export default function ProjectDetail() {
                   </select>
                 </td>
                 <td className="row-actions">
-                  <button className="btn-ghost sm" onClick={() => archiveTask(t.id)}>Archive</button>
                   <button className="btn-danger sm" onClick={() => deleteTask(t.id)}>Delete</button>
                 </td>
               </tr>
