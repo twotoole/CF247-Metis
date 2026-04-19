@@ -1,69 +1,74 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="50" fill="white"/>
 
-  <!-- Outer double ring -->
-  <circle cx="50" cy="50" r="47" fill="none" stroke="#111" stroke-width="1.5"/>
-  <circle cx="50" cy="50" r="43.5" fill="none" stroke="#111" stroke-width="0.5"/>
+  <!-- Black seal -->
+  <circle cx="50" cy="50" r="50" fill="#0d0d0d"/>
 
-  <!-- Art Deco tick marks between rings (16 x 22.5deg) -->
-  <g fill="none" stroke="#111" stroke-width="0.8">
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(0 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(22.5 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(45 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(67.5 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(90 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(112.5 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(135 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(157.5 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(180 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(202.5 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(225 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(247.5 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(270 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(292.5 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(315 50 50)"/>
-    <line x1="50" y1="3" x2="50" y2="6.5" transform="rotate(337.5 50 50)"/>
-  </g>
+  <!-- Border rings -->
+  <circle cx="50" cy="50" r="47.5" fill="none" stroke="white" stroke-width="1.2"/>
+  <circle cx="50" cy="50" r="43.5" fill="none" stroke="white" stroke-width="0.4"/>
 
-  <!-- Inner content ring -->
-  <circle cx="50" cy="50" r="39" fill="none" stroke="#111" stroke-width="0.75"/>
+  <!-- Text arc paths -->
+  <defs>
+    <path id="top" d="M 9.5,50 A 40.5,40.5 0 0,1 90.5,50"/>
+    <path id="bot" d="M 13,50 A 37,37 0 0,0 87,50"/>
+  </defs>
 
-  <!-- Art Deco stepped crown -->
-  <path d="M 42,25 L 42,21 L 45,21 L 45,18 L 47,18 L 47,15 L 50,12 L 53,15 L 53,18 L 55,18 L 55,21 L 58,21 L 58,25 Z"
-        fill="none" stroke="#111" stroke-width="1" stroke-linejoin="miter"/>
+  <text fill="white" font-size="7" font-family="Georgia,serif" font-weight="bold" letter-spacing="3.5">
+    <textPath href="#top" startOffset="50%" text-anchor="middle">CF247</textPath>
+  </text>
+  <text fill="white" font-size="6.5" font-family="Georgia,serif" font-weight="bold" letter-spacing="3">
+    <textPath href="#bot" startOffset="50%" text-anchor="middle">METIS ·</textPath>
+  </text>
+
+  <!-- Hair above head -->
+  <path d="M 46.5,22 C 47,18.5 50,17 53,18 C 55,19 55.5,21.5 54.5,22" fill="white"/>
 
   <!-- Head -->
-  <ellipse cx="50" cy="34" rx="8" ry="9" fill="none" stroke="#111" stroke-width="1"/>
-
-  <!-- Eyes -->
-  <circle cx="46.5" cy="33" r="0.9" fill="#111"/>
-  <circle cx="53.5" cy="33" r="0.9" fill="#111"/>
-
-  <!-- Nose -->
-  <line x1="50" y1="35" x2="50" y2="37" stroke="#111" stroke-width="0.6"/>
+  <ellipse cx="50" cy="26.5" rx="4.3" ry="5.3" fill="white"/>
 
   <!-- Neck -->
-  <line x1="46.5" y1="43" x2="46.5" y2="47" stroke="#111" stroke-width="0.9"/>
-  <line x1="53.5" y1="43" x2="53.5" y2="47" stroke="#111" stroke-width="0.9"/>
+  <path d="M 48,31.8 L 47.5,35 L 52.5,35 L 52,31.8 Z" fill="white"/>
 
-  <!-- Bust and shoulders -->
-  <path d="M 24,68 C 30,51 41,47 46.5,47" fill="none" stroke="#111" stroke-width="1.1"/>
-  <path d="M 53.5,47 C 59,47 70,51 76,68" fill="none" stroke="#111" stroke-width="1.1"/>
-  <line x1="24" y1="68" x2="76" y2="68" stroke="#111" stroke-width="1.1"/>
+  <!-- Raised right arm + hand going upper-right holding torch -->
+  <path d="M 52.5,36
+           C 56,31 60,25.5 63,22
+           C 64,21 65.5,21.5 65,22.5
+           C 62,26 58,31.5 54.5,37 Z"
+        fill="white"/>
 
-  <!-- Art Deco side chevrons -->
-  <path d="M 31,54 L 27.5,58 L 31,62" fill="none" stroke="#111" stroke-width="0.75"/>
-  <path d="M 69,54 L 72.5,58 L 69,62" fill="none" stroke="#111" stroke-width="0.75"/>
+  <!-- Torch flame -->
+  <path d="M 63,21.5 C 61.5,18 64,15.5 65.5,17.5
+           C 66.5,15 68,16.5 67,19.5
+           C 68.5,17 69.5,18.5 68,21.5
+           C 67,19 65,19.5 63,21.5 Z"
+        fill="white"/>
 
-  <!-- Diamond ornaments -->
-  <path d="M 27.5,55.5 L 29.5,58 L 27.5,60.5 L 25.5,58 Z" fill="#111"/>
-  <path d="M 72.5,55.5 L 74.5,58 L 72.5,60.5 L 70.5,58 Z" fill="#111"/>
+  <!-- Left arm hanging / holding robe -->
+  <path d="M 48,35
+           C 45.5,41 43,49 42,57
+           L 44,57.5
+           C 45,49.5 47.5,41.5 50.5,35 Z"
+        fill="white"/>
 
-  <!-- METIS text along bottom arc -->
-  <defs>
-    <path id="arc" d="M 17,50 A 33,33 0 0,1 83,50"/>
-  </defs>
-  <text fill="#111" font-size="6" font-family="serif" letter-spacing="1.5">
-    <textPath href="#arc" startOffset="50%" text-anchor="middle">METIS</textPath>
-  </text>
+  <!-- Main robe body -->
+  <path d="M 46.5,35
+           C 41,38.5 38,46 38,54
+           C 37,63 39,72 41.5,79
+           L 58.5,79
+           C 61,72 63,63 62,54
+           C 62,46 59,38.5 53.5,35 Z"
+        fill="white"/>
+
+  <!-- Belt -->
+  <path d="M 39,52.5 Q 50,51 61,52.5" fill="none" stroke="#0d0d0d" stroke-width="1"/>
+
+  <!-- Robe folds -->
+  <path d="M 50,52.5 L 49.5,79" fill="none" stroke="#0d0d0d" stroke-width="0.65"/>
+  <path d="M 44.5,56 C 44,65 44.5,73 45.5,79" fill="none" stroke="#0d0d0d" stroke-width="0.5"/>
+  <path d="M 55.5,56 C 56,65 55.5,73 54.5,79" fill="none" stroke="#0d0d0d" stroke-width="0.5"/>
+
+  <!-- Feet at hem -->
+  <ellipse cx="45.5" cy="80" rx="2.5" ry="1.3" fill="white"/>
+  <ellipse cx="54.5" cy="80" rx="2.5" ry="1.3" fill="white"/>
+
 </svg>
