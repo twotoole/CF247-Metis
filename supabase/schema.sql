@@ -39,6 +39,16 @@ create table project_logs (
   created_at timestamptz not null default now()
 );
 
+create type request_status as enum ('pending', 'in-progress', 'done');
+
+create table requests (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  status request_status not null default 'pending',
+  created_at timestamptz not null default now()
+);
+
 create table developer_logs (
   id uuid primary key default gen_random_uuid(),
   developer_id uuid references developers(id) on delete cascade,

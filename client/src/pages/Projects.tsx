@@ -5,6 +5,15 @@ import type { Project, ProjectState } from '../types';
 
 const STATES: ProjectState[] = ['pre-production', 'production', 'post-production'];
 
+function getProgress(start: string | null, end: string | null): number | null {
+  if (!start || !end) return null;
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const now = Date.now();
+  if (e <= s) return null;
+  return Math.min(100, Math.max(0, Math.round((now - s) / (e - s) * 100)));
+}
+
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -70,25 +79,33 @@ export default function Projects() {
           <tr>
             <th>Name</th>
             <th>State</th>
-            <th>Start</th>
-            <th>End</th>
+            <th>Progress</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {projects.map(p => (
-            <tr key={p.id}>
-              <td><Link to={`/projects/${p.id}`}>{p.name}</Link></td>
-              <td><span className="badge">{p.state}</span></td>
-              <td>{p.start_date ?? '—'}</td>
-              <td>{p.end_date ?? '—'}</td>
-              <td className="row-actions">
-                {!p.archived && <button className="btn-ghost sm" onClick={() => archiveProject(p.id)}>Archive</button>}
-                <button className="btn-danger sm" onClick={() => deleteProject(p.id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
-          {projects.length === 0 && <tr><td colSpan={5} className="empty">No projects found</td></tr>}
+          {projects.map(p => {
+            const pct = getProgress(p.start_date, p.end_date);
+            return (
+              <tr key={p.id}>
+                <td><Link to={`/projects/${p.id}`}>{p.name}</Link></td>
+                <td><span className="badge">{p.state}</span></td>
+                <td>
+                  {pct !== null ? (
+                    <div className="progress-wrap">
+                      <div className="progress-bar" style={{ width: `${pct}%` }} />
+                      <span className="progress-label">{pct}%</span>
+                    </div>
+                  ) : '—'}
+                </td>
+                <td className="row-actions">
+                  {!p.archived && <button className="btn-ghost sm" onClick={() => archiveProject(p.id)}>Archive</button>}
+                  <button className="btn-danger sm" onClick={() => deleteProject(p.id)}>Delete</button>
+                </td>
+              </tr>
+            );
+          })}
+          {projects.length === 0 && <tr><td colSpan={4} className="empty">No projects found</td></tr>}
         </tbody>
       </table>
     </div>

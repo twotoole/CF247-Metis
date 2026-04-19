@@ -179,5 +179,55 @@ body {
 .log-notes { font-size: 13px; }
 .log-entry .row-actions { justify-content: flex-start; }
 
+/* Progress bar */
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+.progress-bar {
+  height: 6px;
+  background: #000;
+  flex-shrink: 0;
+  max-width: 100px;
+  min-width: 2px;
+}
+.progress-label { font-size: 11px; color: #555; white-space: nowrap; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #000;
+  margin-bottom: 0;
+}
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: 0.5rem 1.25rem;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #555;
+}
+.tab.active { color: #000; border-bottom-color: #000; }
+.tab:hover { color: #000; }
+
+/* Log delete button */
+.log-delete {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: #aaa;
+  margin-left: auto;
+  padding: 0 0.25rem;
+}
+.log-delete:hover { color: #000; }
+
 /* Empty state */
 .empty { color: #888; font-size: 13px; padding: 1rem 0; }
