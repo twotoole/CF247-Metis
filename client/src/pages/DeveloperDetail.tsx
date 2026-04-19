@@ -24,7 +24,7 @@ export default function PersonDetail() {
     setLogs(logData ?? []);
     const seen = new Set<string>();
     const linked: Project[] = [];
-    for (const t of (taskData ?? []) as { project: Project | null }[]) {
+    for (const t of (taskData ?? []) as unknown as { project: Project | null }[]) {
       if (t.project && !seen.has(t.project.id)) {
         seen.add(t.project.id);
         linked.push(t.project);
