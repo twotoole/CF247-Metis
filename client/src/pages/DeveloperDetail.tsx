@@ -15,6 +15,8 @@ export default function PersonDetail() {
   const [showForm, setShowForm] = useState(false);
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
   const [form, setForm] = useState({ notes: '', flagged: false, log_date: new Date().toISOString().split('T')[0] });
+  const [editingPerson, setEditingPerson] = useState(false);
+  const [personEditForm, setPersonEditForm] = useState({ name: '', role: '' });
 
   async function load() {
     const [{ data: dev }, { data: logData }, { data: taskData }] = await Promise.all([
@@ -36,6 +38,21 @@ export default function PersonDetail() {
   }
 
   useEffect(() => { load(); }, [id]);
+
+  function startEditPerson() {
+    if (!person) return;
+    setPersonEditForm({ name: person.name, role: person.role ?? '' });
+    setEditingPerson(true);
+  }
+
+  async function savePersonEdit() {
+    await supabase.from('developers').update({
+      name: personEditForm.name,
+      role: personEditForm.role || null,
+    }).eq('id', id);
+    setEditingPerson(false);
+    load();
+  }
 
   async function addLog() {
     if (!form.notes.trim()) return;
@@ -65,9 +82,28 @@ export default function PersonDetail() {
       {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       <div className="page-header">
         <div>
-          <Link to="/developers" className="back-link">← People</Link>
-          <h1>{person.name}</h1>
-          {person.role && <p className="subtitle">{person.role}</p>}
+          <Link to="/people" className="back-link">← People</Link>
+          {editingPerson ? (
+            <div className="edit-fields">
+              <input className="edit-title" value={personEditForm.name} onChange={e => setPersonEditForm(f => ({ ...f, name: e.target.value }))} />
+              <input className="edit-sub" placeholder="Role" value={personEditForm.role} onChange={e => setPersonEditForm(f => ({ ...f, role: e.target.value }))} />
+            </div>
+          ) : (
+            <>
+              <h1>{person.name}</h1>
+              {person.role && <p className="subtitle">{person.role}</p>}
+            </>
+          )}
+        </div>
+        <div className="header-actions">
+          {editingPerson ? (
+            <>
+              <button className="btn" onClick={savePersonEdit}>Save</button>
+              <button className="btn-ghost" onClick={() => setEditingPerson(false)}>Cancel</button>
+            </>
+          ) : (
+            <button className="btn-ghost sm" onClick={startEditPerson}>Edit</button>
+          )}
         </div>
       </div>
 

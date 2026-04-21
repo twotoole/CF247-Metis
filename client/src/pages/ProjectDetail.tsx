@@ -14,10 +14,12 @@ export default function ProjectDetail() {
   const [logs, setLogs] = useState<ProjectLog[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', developer_id: '', status: 'todo' as TaskStatus });
-  const [logForm, setLogForm] = useState({ notes: '', log_date: new Date().toISOString().split('T')[0] });
+  const [logForm, setLogForm] = useState({ notes: '', log_date: new Date().toISOString().split('T')[0], flagged: false });
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLogForm, setShowLogForm] = useState(false);
   const [editingState, setEditingState] = useState(false);
+  const [editingProject, setEditingProject] = useState(false);
+  const [projectEditForm, setProjectEditForm] = useState({ name: '', description: '', start_date: '', end_date: '' });
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
@@ -35,6 +37,29 @@ export default function ProjectDetail() {
 
   useEffect(() => { load(); }, [id]);
 
+  function startEditProject() {
+    if (!project) return;
+    setProjectEditForm({
+      name: project.name,
+      description: project.description ?? '',
+      start_date: project.start_date ?? '',
+      end_date: project.end_date ?? '',
+    });
+    setEditingProject(true);
+    setEditingState(false);
+  }
+
+  async function saveProjectEdit() {
+    await supabase.from('projects').update({
+      name: projectEditForm.name,
+      description: projectEditForm.description || null,
+      start_date: projectEditForm.start_date || null,
+      end_date: projectEditForm.end_date || null,
+    }).eq('id', id);
+    setEditingProject(false);
+    load();
+  }
+
   async function addTask() {
     if (!taskForm.title.trim()) return;
     await supabase.from('tasks').insert({ ...taskForm, project_id: id, developer_id: taskForm.developer_id || null });
@@ -46,7 +71,7 @@ export default function ProjectDetail() {
   async function addLog() {
     if (!logForm.notes.trim()) return;
     await supabase.from('project_logs').insert({ ...logForm, project_id: id });
-    setLogForm({ notes: '', log_date: new Date().toISOString().split('T')[0] });
+    setLogForm({ notes: '', log_date: new Date().toISOString().split('T')[0], flagged: false });
     setShowLogForm(false);
     load();
   }
@@ -56,7 +81,7 @@ export default function ProjectDetail() {
     load();
   }
 
-function deleteTask(taskId: string) {
+  function deleteTask(taskId: string) {
     setConfirm({ message: 'Delete this task permanently?', onConfirm: async () => {
       await supabase.from('tasks').delete().eq('id', taskId);
       setConfirm(null);
@@ -78,6 +103,11 @@ function deleteTask(taskId: string) {
     load();
   }
 
+  async function toggleLogFlag(logId: string, flagged: boolean) {
+    await supabase.from('project_logs').update({ flagged: !flagged }).eq('id', logId);
+    load();
+  }
+
   if (!project) return <div className="empty">Loading...</div>;
 
   return (
@@ -86,22 +116,46 @@ function deleteTask(taskId: string) {
       <div className="page-header">
         <div>
           <Link to="/projects" className="back-link">← Projects</Link>
-          <h1>{project.name}</h1>
-          {project.description && <p className="subtitle">{project.description}</p>}
-          <div className="meta">
-            {project.start_date && <span>{project.start_date}</span>}
-            {project.end_date && <span> → {project.end_date}</span>}
-          </div>
-        </div>
-        <div className="header-actions">
-          {editingState ? (
-            <div className="inline-select">
-              {STATES.map(s => (
-                <button key={s} className={`btn-ghost sm ${project.state === s ? 'active' : ''}`} onClick={() => updateState(s)}>{s}</button>
-              ))}
+          {editingProject ? (
+            <div className="edit-fields">
+              <input className="edit-title" value={projectEditForm.name} onChange={e => setProjectEditForm(f => ({ ...f, name: e.target.value }))} />
+              <input className="edit-sub" placeholder="Description" value={projectEditForm.description} onChange={e => setProjectEditForm(f => ({ ...f, description: e.target.value }))} />
+              <div className="edit-dates">
+                <input type="date" value={projectEditForm.start_date} onChange={e => setProjectEditForm(f => ({ ...f, start_date: e.target.value }))} />
+                <span>→</span>
+                <input type="date" value={projectEditForm.end_date} onChange={e => setProjectEditForm(f => ({ ...f, end_date: e.target.value }))} />
+              </div>
             </div>
           ) : (
-            <button className="badge clickable" onClick={() => setEditingState(true)}>{project.state}</button>
+            <>
+              <h1>{project.name}</h1>
+              {project.description && <p className="subtitle">{project.description}</p>}
+              <div className="meta">
+                {project.start_date && <span>{project.start_date}</span>}
+                {project.end_date && <span> → {project.end_date}</span>}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="header-actions">
+          {editingProject ? (
+            <>
+              <button className="btn" onClick={saveProjectEdit}>Save</button>
+              <button className="btn-ghost" onClick={() => setEditingProject(false)}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <button className="btn-ghost sm" onClick={startEditProject}>Edit</button>
+              {editingState ? (
+                <div className="inline-select">
+                  {STATES.map(s => (
+                    <button key={s} className={`btn-ghost sm ${project.state === s ? 'active' : ''}`} onClick={() => updateState(s)}>{s}</button>
+                  ))}
+                </div>
+              ) : (
+                <button className="badge clickable" onClick={() => setEditingState(true)}>{project.state}</button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -164,6 +218,10 @@ function deleteTask(taskId: string) {
           <div className="form-card">
             <input type="date" value={logForm.log_date} onChange={e => setLogForm(f => ({ ...f, log_date: e.target.value }))} />
             <textarea placeholder="Notes" value={logForm.notes} onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))} />
+            <label className="checkbox-label">
+              <input type="checkbox" checked={logForm.flagged} onChange={e => setLogForm(f => ({ ...f, flagged: e.target.checked }))} />
+              Flag this entry
+            </label>
             <div className="form-actions">
               <button className="btn" onClick={addLog}>Save</button>
               <button className="btn-ghost" onClick={() => setShowLogForm(false)}>Cancel</button>
@@ -173,10 +231,16 @@ function deleteTask(taskId: string) {
 
         <div className="log-list">
           {logs.map(l => (
-            <div key={l.id} className="log-entry">
-              <div className="log-date">{l.log_date}</div>
+            <div key={l.id} className={`log-entry ${l.flagged ? 'flagged' : ''}`}>
+              <div className="log-meta">
+                <span className="log-date">{l.log_date}</span>
+                {l.flagged && <span className="flag-badge">⚑ Flagged</span>}
+                <button className="btn-ghost sm" onClick={() => toggleLogFlag(l.id, l.flagged ?? false)}>
+                  {l.flagged ? 'Unflag' : 'Flag'}
+                </button>
+                <button className="log-delete" onClick={() => deleteLog(l.id)} title="Delete">×</button>
+              </div>
               <div className="log-notes">{l.notes}</div>
-              <button className="btn-danger sm" onClick={() => deleteLog(l.id)}>Delete</button>
             </div>
           ))}
           {logs.length === 0 && <div className="empty">No log entries</div>}

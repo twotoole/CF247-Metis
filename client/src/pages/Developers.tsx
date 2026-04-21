@@ -70,7 +70,7 @@ export default function People() {
         <tbody>
           {people.map(d => (
             <tr key={d.id}>
-              <td><Link to={`/developers/${d.id}`}>{d.name}</Link></td>
+              <td><Link to={`/people/${d.id}`}>{d.name}</Link></td>
               <td>{d.role ?? '—'}</td>
               <td className="row-actions">
                 {!d.archived && <button className="btn-ghost sm" onClick={() => archivePerson(d.id)}>Archive</button>}

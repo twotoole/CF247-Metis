@@ -36,6 +36,7 @@ export interface ProjectLog {
   id: string;
   project_id: string;
   notes: string;
+  flagged?: boolean;
   log_date: string;
   created_at: string;
 }
