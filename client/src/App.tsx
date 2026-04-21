@@ -5,6 +5,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import Developers from './pages/Developers';
 import DeveloperDetail from './pages/DeveloperDetail';
 import Requests from './pages/Requests';
+import RequestDetail from './pages/RequestDetail';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="people" element={<Developers />} />
           <Route path="people/:id" element={<DeveloperDetail />} />
           <Route path="requests" element={<Requests />} />
+          <Route path="requests/:id" element={<RequestDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

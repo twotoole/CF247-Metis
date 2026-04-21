@@ -1,5 +1,7 @@
 export type ProjectState = 'pre-production' | 'production' | 'post-production';
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
+export type Severity = 'low' | 'medium' | 'high';
+export type RequestStatus = 'pending' | 'in-progress' | 'done';
 
 export interface Developer {
   id: string;
@@ -46,6 +48,30 @@ export interface DeveloperLog {
   developer_id: string;
   notes: string;
   flagged: boolean;
+  log_date: string;
+  created_at: string;
+}
+
+export interface Risk {
+  id: string;
+  project_id: string;
+  description: string;
+  severity: Severity;
+  created_at: string;
+}
+
+export interface Request {
+  id: string;
+  title: string;
+  description: string | null;
+  status: RequestStatus;
+  created_at: string;
+}
+
+export interface RequestNote {
+  id: string;
+  request_id: string;
+  notes: string;
   log_date: string;
   created_at: string;
 }

@@ -2,37 +2,43 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ConfirmModal from '../components/ConfirmModal';
-import type { Project, Task, ProjectLog, Developer, ProjectState, TaskStatus } from '../types';
+import type { Project, Task, ProjectLog, Developer, Risk, ProjectState, TaskStatus, Severity } from '../types';
 
 const STATES: ProjectState[] = ['pre-production', 'production', 'post-production'];
 const TASK_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
+const SEVERITIES: Severity[] = ['low', 'medium', 'high'];
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [logs, setLogs] = useState<ProjectLog[]>([]);
+  const [risks, setRisks] = useState<Risk[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', developer_id: '', status: 'todo' as TaskStatus });
   const [logForm, setLogForm] = useState({ notes: '', log_date: new Date().toISOString().split('T')[0], flagged: false });
+  const [riskForm, setRiskForm] = useState({ description: '', severity: 'medium' as Severity });
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLogForm, setShowLogForm] = useState(false);
+  const [showRiskForm, setShowRiskForm] = useState(false);
   const [editingState, setEditingState] = useState(false);
   const [editingProject, setEditingProject] = useState(false);
   const [projectEditForm, setProjectEditForm] = useState({ name: '', description: '', start_date: '', end_date: '' });
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
-    const [{ data: proj }, { data: taskData }, { data: logData }, { data: devData }] = await Promise.all([
+    const [{ data: proj }, { data: taskData }, { data: logData }, { data: devData }, { data: riskData }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('tasks').select('*, developer:developers(id,name)').eq('project_id', id).eq('archived', false).order('created_at'),
       supabase.from('project_logs').select('*').eq('project_id', id).order('log_date', { ascending: false }),
       supabase.from('developers').select('*').eq('archived', false).order('name'),
+      supabase.from('risks').select('*').eq('project_id', id).order('created_at'),
     ]);
     setProject(proj);
     setTasks(taskData ?? []);
     setLogs(logData ?? []);
     setDevelopers(devData ?? []);
+    setRisks(riskData ?? []);
   }
 
   useEffect(() => { load(); }, [id]);
@@ -76,6 +82,14 @@ export default function ProjectDetail() {
     load();
   }
 
+  async function addRisk() {
+    if (!riskForm.description.trim()) return;
+    await supabase.from('risks').insert({ ...riskForm, project_id: id });
+    setRiskForm({ description: '', severity: 'medium' });
+    setShowRiskForm(false);
+    load();
+  }
+
   async function updateTaskStatus(taskId: string, status: TaskStatus) {
     await supabase.from('tasks').update({ status }).eq('id', taskId);
     load();
@@ -92,6 +106,14 @@ export default function ProjectDetail() {
   function deleteLog(logId: string) {
     setConfirm({ message: 'Delete this log entry?', onConfirm: async () => {
       await supabase.from('project_logs').delete().eq('id', logId);
+      setConfirm(null);
+      load();
+    }});
+  }
+
+  function deleteRisk(riskId: string) {
+    setConfirm({ message: 'Delete this risk?', onConfirm: async () => {
+      await supabase.from('risks').delete().eq('id', riskId);
       setConfirm(null);
       load();
     }});
@@ -206,6 +228,39 @@ export default function ProjectDetail() {
             {tasks.length === 0 && <tr><td colSpan={4} className="empty">No tasks</td></tr>}
           </tbody>
         </table>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <h2>Risks</h2>
+          <button className="btn" onClick={() => setShowRiskForm(s => !s)}>+ Add Risk</button>
+        </div>
+
+        {showRiskForm && (
+          <div className="form-card">
+            <textarea placeholder="Describe the risk" value={riskForm.description} onChange={e => setRiskForm(f => ({ ...f, description: e.target.value }))} />
+            <select value={riskForm.severity} onChange={e => setRiskForm(f => ({ ...f, severity: e.target.value as Severity }))}>
+              {SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <div className="form-actions">
+              <button className="btn" onClick={addRisk}>Save</button>
+              <button className="btn-ghost" onClick={() => setShowRiskForm(false)}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        <div className="log-list">
+          {risks.map(r => (
+            <div key={r.id} className="log-entry">
+              <div className="log-meta">
+                <span className={`badge severity-${r.severity}`}>{r.severity}</span>
+                <button className="log-delete" onClick={() => deleteRisk(r.id)} title="Delete">×</button>
+              </div>
+              <div className="log-notes">{r.description}</div>
+            </div>
+          ))}
+          {risks.length === 0 && <div className="empty">No risks logged</div>}
+        </div>
       </section>
 
       <section className="section">

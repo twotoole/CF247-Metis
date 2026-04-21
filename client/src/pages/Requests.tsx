@@ -1,16 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ConfirmModal from '../components/ConfirmModal';
-
-type RequestStatus = 'pending' | 'in-progress' | 'done';
-
-interface Request {
-  id: string;
-  title: string;
-  description: string | null;
-  status: RequestStatus;
-  created_at: string;
-}
+import type { Request, RequestStatus } from '../types';
 
 const STATUSES: RequestStatus[] = ['pending', 'in-progress', 'done'];
 
@@ -77,7 +69,7 @@ export default function Requests() {
         <tbody>
           {requests.map(r => (
             <tr key={r.id}>
-              <td>{r.title}</td>
+              <td><Link to={`/requests/${r.id}`}>{r.title}</Link></td>
               <td className="sub">{r.description ?? '—'}</td>
               <td>
                 <select value={r.status} onChange={e => updateStatus(r.id, e.target.value as RequestStatus)}>

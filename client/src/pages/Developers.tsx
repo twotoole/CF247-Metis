@@ -10,6 +10,8 @@ export default function People() {
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState({ name: '', role: '' });
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', role: '' });
 
   async function load() {
     const { data } = await supabase.from('developers').select('*').eq('archived', showArchived).order('name');
@@ -37,6 +39,21 @@ export default function People() {
       setConfirm(null);
       load();
     }});
+  }
+
+  function startEdit(d: Developer) {
+    setEditingId(d.id);
+    setEditForm({ name: d.name, role: d.role ?? '' });
+  }
+
+  async function saveEdit() {
+    if (!editingId) return;
+    await supabase.from('developers').update({
+      name: editForm.name,
+      role: editForm.role || null,
+    }).eq('id', editingId);
+    setEditingId(null);
+    load();
   }
 
   return (
@@ -68,16 +85,36 @@ export default function People() {
           <tr><th>Name</th><th>Role</th><th></th></tr>
         </thead>
         <tbody>
-          {people.map(d => (
-            <tr key={d.id}>
-              <td><Link to={`/people/${d.id}`}>{d.name}</Link></td>
-              <td>{d.role ?? '—'}</td>
-              <td className="row-actions">
-                {!d.archived && <button className="btn-ghost sm" onClick={() => archivePerson(d.id)}>Archive</button>}
-                <button className="btn-danger sm" onClick={() => deletePerson(d.id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
+          {people.flatMap(d => {
+            const isEditing = editingId === d.id;
+            return [
+              <tr key={d.id}>
+                <td><Link to={`/people/${d.id}`}>{d.name}</Link></td>
+                <td>{d.role ?? '—'}</td>
+                <td className="row-actions">
+                  <button className="btn-ghost sm" onClick={() => isEditing ? setEditingId(null) : startEdit(d)}>
+                    {isEditing ? 'Cancel' : 'Edit'}
+                  </button>
+                  {!d.archived && <button className="btn-ghost sm" onClick={() => archivePerson(d.id)}>Archive</button>}
+                  <button className="btn-danger sm" onClick={() => deletePerson(d.id)}>Delete</button>
+                </td>
+              </tr>,
+              ...(isEditing ? [
+                <tr key={`${d.id}-edit`}>
+                  <td colSpan={3}>
+                    <div className="inline-edit-form">
+                      <input placeholder="Name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                      <input placeholder="Role" value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} />
+                      <div className="form-actions">
+                        <button className="btn" onClick={saveEdit}>Save</button>
+                        <button className="btn-ghost" onClick={() => setEditingId(null)}>Cancel</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>,
+              ] : []),
+            ];
+          })}
           {people.length === 0 && <tr><td colSpan={3} className="empty">No people found</td></tr>}
         </tbody>
       </table>
