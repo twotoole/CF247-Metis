@@ -50,6 +50,8 @@ function SortableProjectRow({ project, flaggedIds, isEditing, anyEditing, onTogg
         <Link to={`/projects/${project.id}`}>{project.name}</Link>
       </td>
       <td><span className="badge">{project.state}</span></td>
+      <td className="sub">{project.start_date ?? '—'}</td>
+      <td className="sub">{project.end_date ?? '—'}</td>
       <td>
         {pct !== null ? (
           <div className="progress-wrap">
@@ -179,7 +181,7 @@ export default function Projects() {
         <SortableContext items={projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
           <table className="table">
             <thead>
-              <tr><th style={{ width: 28 }}></th><th>Name</th><th>State</th><th>Progress</th><th></th></tr>
+              <tr><th style={{ width: 28 }}></th><th>Name</th><th>State</th><th>Start</th><th>End</th><th>Progress</th><th></th></tr>
             </thead>
             <tbody>
               {projects.flatMap(p => {
@@ -197,7 +199,7 @@ export default function Projects() {
                   />,
                   ...(isEditing ? [
                     <tr key={`${p.id}-edit`}>
-                      <td colSpan={5}>
+                      <td colSpan={7}>
                         <div className="inline-edit-form">
                           <input placeholder="Name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
                           <input placeholder="Description" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
@@ -216,7 +218,7 @@ export default function Projects() {
                   ] : []),
                 ];
               })}
-              {projects.length === 0 && <tr><td colSpan={5} className="empty">No projects found</td></tr>}
+              {projects.length === 0 && <tr><td colSpan={7} className="empty">No projects found</td></tr>}
             </tbody>
           </table>
         </SortableContext>
