@@ -9,6 +9,7 @@ export default function Layout() {
           <NavLink to="/projects">Projects</NavLink>
           <NavLink to="/people">People</NavLink>
           <NavLink to="/notes">Notes</NavLink>
+          <NavLink to="/actions">Actions</NavLink>
           <NavLink to="/requests">Requests</NavLink>
         </div>
       </nav>

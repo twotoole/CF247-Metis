@@ -33,6 +33,7 @@ export interface Task {
   archived: boolean;
   created_at: string;
   developer?: Developer;
+  project?: { id: string; name: string };
 }
 
 export interface ProjectLog {

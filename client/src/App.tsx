@@ -7,6 +7,7 @@ import DeveloperDetail from './pages/DeveloperDetail';
 import Requests from './pages/Requests';
 import RequestDetail from './pages/RequestDetail';
 import Notes from './pages/Notes';
+import Actions from './pages/Actions';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="requests" element={<Requests />} />
           <Route path="requests/:id" element={<RequestDetail />} />
           <Route path="notes" element={<Notes />} />
+          <Route path="actions" element={<Actions />} />
         </Route>
       </Routes>
     </BrowserRouter>

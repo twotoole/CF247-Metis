@@ -104,7 +104,7 @@ export default function ProjectDetail() {
   }
 
   function deleteTask(taskId: string) {
-    setConfirm({ message: 'Delete this task permanently?', onConfirm: async () => {
+    setConfirm({ message: 'Delete this action permanently?', onConfirm: async () => {
       await supabase.from('tasks').delete().eq('id', taskId);
       setConfirm(null); load();
     }});
@@ -187,12 +187,12 @@ export default function ProjectDetail() {
 
       <section className="section">
         <div className="section-header">
-          <h2>Tasks</h2>
-          <button className="btn" onClick={() => setShowTaskForm(s => !s)}>+ Add Task</button>
+          <h2>Actions</h2>
+          <button className="btn" onClick={() => setShowTaskForm(s => !s)}>+ Add Action</button>
         </div>
         {showTaskForm && (
           <div className="form-card">
-            <input placeholder="Task title" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
+            <input placeholder="Action title" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
             <input placeholder="Description" value={taskForm.description} onChange={e => setTaskForm(f => ({ ...f, description: e.target.value }))} />
             <select value={taskForm.developer_id} onChange={e => setTaskForm(f => ({ ...f, developer_id: e.target.value }))}>
               <option value="">Unassigned</option>
@@ -224,7 +224,7 @@ export default function ProjectDetail() {
                 </td>
               </tr>
             ))}
-            {tasks.length === 0 && <tr><td colSpan={4} className="empty">No tasks</td></tr>}
+            {tasks.length === 0 && <tr><td colSpan={4} className="empty">No actions</td></tr>}
           </tbody>
         </table>
       </section>
