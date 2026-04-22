@@ -376,5 +376,25 @@ body {
 .log-entry-edit textarea:focus,
 .log-entry-edit select:focus { outline: 2px solid #000; border-color: #000; }
 
+/* Drag and drop */
+.drag-cell { width: 28px; padding: 0 0.25rem !important; }
+.drag-handle {
+  display: inline-block;
+  cursor: grab;
+  color: #bbb;
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+.drag-handle:hover { color: #555; }
+.drag-handle:active { cursor: grabbing; }
+
+/* Sortable column header */
+.sort-header {
+  cursor: pointer;
+  user-select: none;
+}
+.sort-header:hover { color: #000; }
+
 /* Empty state */
 .empty { color: #888; font-size: 13px; padding: 1rem 0; }

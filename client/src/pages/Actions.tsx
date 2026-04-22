@@ -1,9 +1,54 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../lib/supabase';
 import type { Task, TaskStatus, Project, Developer } from '../types';
 
+type SortMode = 'default' | 'asc' | 'desc';
 const TASK_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
+
+function SortableActionRow({ action, sortMode, onStatusChange }: {
+  action: Task;
+  sortMode: SortMode;
+  onStatusChange: (id: string, status: TaskStatus) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: action.id,
+    disabled: sortMode !== 'default',
+  });
+
+  return (
+    <tr ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}>
+      <td className="drag-cell">
+        {sortMode === 'default' && <span className="drag-handle" {...attributes} {...listeners}>⠿</span>}
+      </td>
+      <td>
+        {action.title}
+        {action.description && <span className="sub"> — {action.description}</span>}
+      </td>
+      <td>
+        {action.project
+          ? <Link to={`/projects/${action.project.id}`}>{action.project.name}</Link>
+          : '—'}
+      </td>
+      <td>{action.developer?.name ?? '—'}</td>
+      <td>
+        <select value={action.status} onChange={e => onStatusChange(action.id, e.target.value as TaskStatus)}>
+          {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </td>
+      <td className="sub">{action.created_at.split('T')[0]}</td>
+    </tr>
+  );
+}
 
 export default function Actions() {
   const [actions, setActions] = useState<Task[]>([]);
@@ -11,10 +56,19 @@ export default function Actions() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', project_id: '', developer_id: '', status: 'todo' as TaskStatus });
+  const [sortMode, setSortMode] = useState<SortMode>('default');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   async function load() {
     const [{ data: taskData }, { data: projectData }, { data: devData }] = await Promise.all([
-      supabase.from('tasks').select('*, project:projects(id, name), developer:developers(id, name)').eq('archived', false).order('created_at', { ascending: false }),
+      supabase.from('tasks').select('*, project:projects(id, name), developer:developers(id, name)')
+        .eq('archived', false)
+        .order('sort_order', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: false }),
       supabase.from('projects').select('*').eq('archived', false).order('name'),
       supabase.from('developers').select('*').eq('archived', false).order('name'),
     ]);
@@ -43,6 +97,32 @@ export default function Actions() {
     await supabase.from('tasks').update({ status }).eq('id', id);
     load();
   }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = actions.findIndex(a => a.id === active.id);
+    const newIndex = actions.findIndex(a => a.id === over.id);
+    const reordered = arrayMove(actions, oldIndex, newIndex);
+    setActions(reordered);
+    await Promise.all(
+      reordered.map((a, i) => supabase.from('tasks').update({ sort_order: i }).eq('id', a.id))
+    );
+  }
+
+  function cycleSortMode() {
+    setSortMode(m => m === 'default' ? 'asc' : m === 'asc' ? 'desc' : 'default');
+  }
+
+  const displayedActions = sortMode === 'default'
+    ? actions
+    : [...actions].sort((a, b) => {
+        const ta = new Date(a.created_at).getTime();
+        const tb = new Date(b.created_at).getTime();
+        return sortMode === 'asc' ? ta - tb : tb - ta;
+      });
+
+  const sortIndicator = sortMode === 'asc' ? ' ↑' : sortMode === 'desc' ? ' ↓' : '';
 
   return (
     <div>
@@ -73,34 +153,28 @@ export default function Actions() {
         </div>
       )}
 
-      <table className="table">
-        <thead>
-          <tr><th>Action</th><th>Project</th><th>Assignee</th><th>Status</th><th>Added</th></tr>
-        </thead>
-        <tbody>
-          {actions.map(a => (
-            <tr key={a.id}>
-              <td>
-                {a.title}
-                {a.description && <span className="sub"> — {a.description}</span>}
-              </td>
-              <td>
-                {a.project
-                  ? <Link to={`/projects/${a.project.id}`}>{a.project.name}</Link>
-                  : '—'}
-              </td>
-              <td>{a.developer?.name ?? '—'}</td>
-              <td>
-                <select value={a.status} onChange={e => updateStatus(a.id, e.target.value as TaskStatus)}>
-                  {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </td>
-              <td className="sub">{a.created_at.split('T')[0]}</td>
-            </tr>
-          ))}
-          {actions.length === 0 && <tr><td colSpan={5} className="empty">No actions</td></tr>}
-        </tbody>
-      </table>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={displayedActions.map(a => a.id)} strategy={verticalListSortingStrategy}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: 28 }}></th>
+                <th>Action</th>
+                <th>Project</th>
+                <th>Assignee</th>
+                <th>Status</th>
+                <th className="sort-header" onClick={cycleSortMode}>Added{sortIndicator}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayedActions.map(a => (
+                <SortableActionRow key={a.id} action={a} sortMode={sortMode} onStatusChange={updateStatus} />
+              ))}
+              {displayedActions.length === 0 && <tr><td colSpan={6} className="empty">No actions</td></tr>}
+            </tbody>
+          </table>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
