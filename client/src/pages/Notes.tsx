@@ -32,6 +32,10 @@ export default function Notes() {
 
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [actionEditForm, setActionEditForm] = useState({ description: '', status: 'open' as ActionStatus });
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  function toggleEntry(id: string) {
+    setExpandedIds((s: Set<string>) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
 
   async function load() {
     const [{ data: su }, { data: mt }, { data: ac }] = await Promise.all([
@@ -223,31 +227,38 @@ export default function Notes() {
             </div>
           )}
           <div className="log-list">
-            {standups.map(s => (
-              <div key={s.id} className="log-entry">
-                {editingStandupId === s.id ? (
-                  <div className="log-entry-edit">
-                    <input type="date" value={standupEditForm.standup_date} onChange={e => setStandupEditForm(f => ({ ...f, standup_date: e.target.value }))} />
-                    <textarea value={standupEditForm.notes} onChange={e => setStandupEditForm(f => ({ ...f, notes: e.target.value }))} />
-                    <div className="form-actions">
-                      <button className="btn" onClick={saveStandupEdit}>Save</button>
-                      <button className="btn-ghost" onClick={() => setEditingStandupId(null)}>Cancel</button>
+            {standups.map(s => {
+              const expanded = expandedIds.has(s.id);
+              return (
+                <div key={s.id} className="log-entry">
+                  {editingStandupId === s.id ? (
+                    <div className="log-entry-edit">
+                      <input type="date" value={standupEditForm.standup_date} onChange={e => setStandupEditForm(f => ({ ...f, standup_date: e.target.value }))} />
+                      <textarea value={standupEditForm.notes} onChange={e => setStandupEditForm(f => ({ ...f, notes: e.target.value }))} />
+                      <div className="form-actions">
+                        <button className="btn" onClick={saveStandupEdit}>Save</button>
+                        <button className="btn-ghost" onClick={() => setEditingStandupId(null)}>Cancel</button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="log-meta">
-                      <span className="log-date">{s.standup_date}</span>
-                      <button className="btn-ghost sm" onClick={() => { setEditingStandupId(s.id); setStandupEditForm({ notes: s.notes, standup_date: s.standup_date }); }}>Edit</button>
-                      <button className="btn-ghost sm" onClick={() => archiveStandup(s.id)}>{showArchived ? 'Unarchive' : 'Archive'}</button>
-                      <button className="log-delete" onClick={() => deleteStandup(s.id)} title="Delete">×</button>
-                    </div>
-                    <div className="log-notes">{s.notes}</div>
-                    {renderNoteActions('standup', s.id)}
-                  </>
-                )}
-              </div>
-            ))}
+                  ) : (
+                    <>
+                      <div className="log-meta" onClick={() => toggleEntry(s.id)}>
+                        <span className="log-date">{s.standup_date}</span>
+                        {!expanded && <span className="log-preview">{s.notes}</span>}
+                        {expanded && <>
+                          <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); setEditingStandupId(s.id); setStandupEditForm({ notes: s.notes, standup_date: s.standup_date }); }}>Edit</button>
+                          <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); archiveStandup(s.id); }}>{showArchived ? 'Unarchive' : 'Archive'}</button>
+                          <button className="log-delete" onClick={e =>{ e.stopPropagation(); deleteStandup(s.id); }} title="Delete">×</button>
+                        </>}
+                        <span className="log-toggle">{expanded ? '▲' : '▼'}</span>
+                      </div>
+                      {expanded && <div className="log-notes">{s.notes}</div>}
+                      {expanded && renderNoteActions('standup', s.id)}
+                    </>
+                  )}
+                </div>
+              );
+            })}
             {standups.length === 0 && <div className="empty">No stand-ups</div>}
           </div>
         </section>
@@ -271,34 +282,40 @@ export default function Notes() {
             <div key={group} className="meeting-group">
               <div className="meeting-group-title">{group}</div>
               <div className="log-list">
-                {groupMeetings.map(m => (
-                  <div key={m.id} className="log-entry">
-                    {editingMeetingId === m.id ? (
-                      <div className="log-entry-edit">
-                        <input placeholder="Title" value={meetingEditForm.title} onChange={e => setMeetingEditForm(f => ({ ...f, title: e.target.value }))} />
-                        <input placeholder="Group" value={meetingEditForm.group_name} onChange={e => setMeetingEditForm(f => ({ ...f, group_name: e.target.value }))} />
-                        <input type="date" value={meetingEditForm.meeting_date} onChange={e => setMeetingEditForm(f => ({ ...f, meeting_date: e.target.value }))} />
-                        <textarea placeholder="Notes" value={meetingEditForm.notes} onChange={e => setMeetingEditForm(f => ({ ...f, notes: e.target.value }))} />
-                        <div className="form-actions">
-                          <button className="btn" onClick={saveMeetingEdit}>Save</button>
-                          <button className="btn-ghost" onClick={() => setEditingMeetingId(null)}>Cancel</button>
+                {groupMeetings.map(m => {
+                  const expanded = expandedIds.has(m.id);
+                  return (
+                    <div key={m.id} className="log-entry">
+                      {editingMeetingId === m.id ? (
+                        <div className="log-entry-edit">
+                          <input placeholder="Title" value={meetingEditForm.title} onChange={e => setMeetingEditForm(f => ({ ...f, title: e.target.value }))} />
+                          <input placeholder="Group" value={meetingEditForm.group_name} onChange={e => setMeetingEditForm(f => ({ ...f, group_name: e.target.value }))} />
+                          <input type="date" value={meetingEditForm.meeting_date} onChange={e => setMeetingEditForm(f => ({ ...f, meeting_date: e.target.value }))} />
+                          <textarea placeholder="Notes" value={meetingEditForm.notes} onChange={e => setMeetingEditForm(f => ({ ...f, notes: e.target.value }))} />
+                          <div className="form-actions">
+                            <button className="btn" onClick={saveMeetingEdit}>Save</button>
+                            <button className="btn-ghost" onClick={() => setEditingMeetingId(null)}>Cancel</button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="log-meta">
-                          <span className="log-date">{m.meeting_date}</span>
-                          <button className="btn-ghost sm" onClick={() => { setEditingMeetingId(m.id); setMeetingEditForm({ title: m.title, group_name: m.group_name ?? '', notes: m.notes ?? '', meeting_date: m.meeting_date }); }}>Edit</button>
-                          <button className="btn-ghost sm" onClick={() => archiveMeeting(m.id)}>{showArchived ? 'Unarchive' : 'Archive'}</button>
-                          <button className="log-delete" onClick={() => deleteMeeting(m.id)} title="Delete">×</button>
-                        </div>
-                        <div className="meeting-title">{m.title}</div>
-                        {m.notes && <div className="log-notes">{m.notes}</div>}
-                        {renderNoteActions('meeting', m.id)}
-                      </>
-                    )}
-                  </div>
-                ))}
+                      ) : (
+                        <>
+                          <div className="log-meta" onClick={() => toggleEntry(m.id)}>
+                            <span className="log-date">{m.meeting_date}</span>
+                            <span className="meeting-title" style={{ flex: 1 }}>{m.title}</span>
+                            {expanded && <>
+                              <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); setEditingMeetingId(m.id); setMeetingEditForm({ title: m.title, group_name: m.group_name ?? '', notes: m.notes ?? '', meeting_date: m.meeting_date }); }}>Edit</button>
+                              <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); archiveMeeting(m.id); }}>{showArchived ? 'Unarchive' : 'Archive'}</button>
+                              <button className="log-delete" onClick={e =>{ e.stopPropagation(); deleteMeeting(m.id); }} title="Delete">×</button>
+                            </>}
+                            <span className="log-toggle">{expanded ? '▲' : '▼'}</span>
+                          </div>
+                          {expanded && m.notes && <div className="log-notes">{m.notes}</div>}
+                          {expanded && renderNoteActions('meeting', m.id)}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

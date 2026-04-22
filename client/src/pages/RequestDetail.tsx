@@ -17,6 +17,10 @@ export default function RequestDetail() {
   const [editingStatus, setEditingStatus] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteEditForm, setNoteEditForm] = useState({ notes: '', log_date: '' });
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(new Set());
+  function toggleNote(id: string) {
+    setExpandedNoteIds((s: Set<string>) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
@@ -133,29 +137,36 @@ export default function RequestDetail() {
           </div>
         )}
         <div className="log-list">
-          {notes.map(n => (
-            <div key={n.id} className="log-entry">
-              {editingNoteId === n.id ? (
-                <div className="log-entry-edit">
-                  <input type="date" value={noteEditForm.log_date} onChange={e => setNoteEditForm(f => ({ ...f, log_date: e.target.value }))} />
-                  <textarea value={noteEditForm.notes} onChange={e => setNoteEditForm(f => ({ ...f, notes: e.target.value }))} />
-                  <div className="form-actions">
-                    <button className="btn" onClick={saveNoteEdit}>Save</button>
-                    <button className="btn-ghost" onClick={() => setEditingNoteId(null)}>Cancel</button>
+          {notes.map(n => {
+            const expanded = expandedNoteIds.has(n.id);
+            return (
+              <div key={n.id} className="log-entry">
+                {editingNoteId === n.id ? (
+                  <div className="log-entry-edit">
+                    <input type="date" value={noteEditForm.log_date} onChange={e => setNoteEditForm(f => ({ ...f, log_date: e.target.value }))} />
+                    <textarea value={noteEditForm.notes} onChange={e => setNoteEditForm(f => ({ ...f, notes: e.target.value }))} />
+                    <div className="form-actions">
+                      <button className="btn" onClick={saveNoteEdit}>Save</button>
+                      <button className="btn-ghost" onClick={() => setEditingNoteId(null)}>Cancel</button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <>
-                  <div className="log-meta">
-                    <span className="log-date">{n.log_date}</span>
-                    <button className="btn-ghost sm" onClick={() => { setEditingNoteId(n.id); setNoteEditForm({ notes: n.notes, log_date: n.log_date }); }}>Edit</button>
-                    <button className="log-delete" onClick={() => deleteNote(n.id)} title="Delete">×</button>
-                  </div>
-                  <div className="log-notes">{n.notes}</div>
-                </>
-              )}
-            </div>
-          ))}
+                ) : (
+                  <>
+                    <div className="log-meta" onClick={() => toggleNote(n.id)}>
+                      <span className="log-date">{n.log_date}</span>
+                      {!expanded && <span className="log-preview">{n.notes}</span>}
+                      {expanded && <>
+                        <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); setEditingNoteId(n.id); setNoteEditForm({ notes: n.notes, log_date: n.log_date }); }}>Edit</button>
+                        <button className="log-delete" onClick={e =>{ e.stopPropagation(); deleteNote(n.id); }} title="Delete">×</button>
+                      </>}
+                      <span className="log-toggle">{expanded ? '▲' : '▼'}</span>
+                    </div>
+                    {expanded && <div className="log-notes">{n.notes}</div>}
+                  </>
+                )}
+              </div>
+            );
+          })}
           {notes.length === 0 && <div className="empty">No notes yet</div>}
         </div>
       </section>
