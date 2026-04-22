@@ -311,5 +311,70 @@ body {
 .badge.severity-high { background: #000; color: #fff; }
 .badge.severity-low { border-color: #bbb; color: #888; }
 
+/* Meeting groups */
+.meeting-group { margin-bottom: 2rem; }
+.meeting-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+.meeting-title { font-weight: 600; font-size: 14px; margin-bottom: 0.25rem; }
+
+/* Actions within notes */
+.note-actions {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.action-item { display: flex; align-items: center; gap: 0.5rem; font-size: 13px; }
+.action-desc { flex: 1; }
+.action-form {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.action-form input,
+.action-form select {
+  border: 1px solid #ccc;
+  padding: 0.3rem 0.5rem;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+}
+.action-form input:focus,
+.action-form select:focus { outline: 2px solid #000; border-color: #000; }
+
+/* Action status badges */
+.badge.status-done { background: #000; color: #fff; }
+.badge.status-in-progress { border-style: dashed; }
+
+/* Inline edit form inside log entries */
+.log-entry-edit { display: flex; flex-direction: column; gap: 0.4rem; }
+.log-entry-edit input,
+.log-entry-edit textarea,
+.log-entry-edit select {
+  border: 1px solid #ccc;
+  padding: 0.3rem 0.5rem;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  width: 100%;
+}
+.log-entry-edit textarea { min-height: 60px; resize: vertical; }
+.log-entry-edit input:focus,
+.log-entry-edit textarea:focus,
+.log-entry-edit select:focus { outline: 2px solid #000; border-color: #000; }
+
 /* Empty state */
 .empty { color: #888; font-size: 13px; padding: 1rem 0; }

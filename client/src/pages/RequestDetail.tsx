@@ -15,6 +15,8 @@ export default function RequestDetail() {
   const [editingRequest, setEditingRequest] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', description: '' });
   const [editingStatus, setEditingStatus] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteEditForm, setNoteEditForm] = useState({ notes: '', log_date: '' });
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
@@ -36,10 +38,7 @@ export default function RequestDetail() {
   }
 
   async function saveEdit() {
-    await supabase.from('requests').update({
-      title: editForm.title,
-      description: editForm.description || null,
-    }).eq('id', id);
+    await supabase.from('requests').update({ title: editForm.title, description: editForm.description || null }).eq('id', id);
     setEditingRequest(false);
     load();
   }
@@ -55,6 +54,13 @@ export default function RequestDetail() {
     await supabase.from('request_notes').insert({ ...noteForm, request_id: id });
     setNoteForm({ notes: '', log_date: new Date().toISOString().split('T')[0] });
     setShowNoteForm(false);
+    load();
+  }
+
+  async function saveNoteEdit() {
+    if (!editingNoteId) return;
+    await supabase.from('request_notes').update(noteEditForm).eq('id', editingNoteId);
+    setEditingNoteId(null);
     load();
   }
 
@@ -114,7 +120,6 @@ export default function RequestDetail() {
           <h2>Notes</h2>
           <button className="btn" onClick={() => setShowNoteForm(s => !s)}>+ Add Note</button>
         </div>
-
         {showNoteForm && (
           <div className="form-card">
             <input type="date" value={noteForm.log_date} onChange={e => setNoteForm(f => ({ ...f, log_date: e.target.value }))} />
@@ -125,15 +130,28 @@ export default function RequestDetail() {
             </div>
           </div>
         )}
-
         <div className="log-list">
           {notes.map(n => (
             <div key={n.id} className="log-entry">
-              <div className="log-meta">
-                <span className="log-date">{n.log_date}</span>
-                <button className="log-delete" onClick={() => deleteNote(n.id)} title="Delete">×</button>
-              </div>
-              <div className="log-notes">{n.notes}</div>
+              {editingNoteId === n.id ? (
+                <div className="log-entry-edit">
+                  <input type="date" value={noteEditForm.log_date} onChange={e => setNoteEditForm(f => ({ ...f, log_date: e.target.value }))} />
+                  <textarea value={noteEditForm.notes} onChange={e => setNoteEditForm(f => ({ ...f, notes: e.target.value }))} />
+                  <div className="form-actions">
+                    <button className="btn" onClick={saveNoteEdit}>Save</button>
+                    <button className="btn-ghost" onClick={() => setEditingNoteId(null)}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="log-meta">
+                    <span className="log-date">{n.log_date}</span>
+                    <button className="btn-ghost sm" onClick={() => { setEditingNoteId(n.id); setNoteEditForm({ notes: n.notes, log_date: n.log_date }); }}>Edit</button>
+                    <button className="log-delete" onClick={() => deleteNote(n.id)} title="Delete">×</button>
+                  </div>
+                  <div className="log-notes">{n.notes}</div>
+                </>
+              )}
             </div>
           ))}
           {notes.length === 0 && <div className="empty">No notes yet</div>}

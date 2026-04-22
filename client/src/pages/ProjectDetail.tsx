@@ -24,6 +24,10 @@ export default function ProjectDetail() {
   const [editingState, setEditingState] = useState(false);
   const [editingProject, setEditingProject] = useState(false);
   const [projectEditForm, setProjectEditForm] = useState({ name: '', description: '', start_date: '', end_date: '' });
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [logEditForm, setLogEditForm] = useState({ notes: '', log_date: '', flagged: false });
+  const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
+  const [riskEditForm, setRiskEditForm] = useState({ description: '', severity: 'medium' as Severity });
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
@@ -45,23 +49,13 @@ export default function ProjectDetail() {
 
   function startEditProject() {
     if (!project) return;
-    setProjectEditForm({
-      name: project.name,
-      description: project.description ?? '',
-      start_date: project.start_date ?? '',
-      end_date: project.end_date ?? '',
-    });
+    setProjectEditForm({ name: project.name, description: project.description ?? '', start_date: project.start_date ?? '', end_date: project.end_date ?? '' });
     setEditingProject(true);
     setEditingState(false);
   }
 
   async function saveProjectEdit() {
-    await supabase.from('projects').update({
-      name: projectEditForm.name,
-      description: projectEditForm.description || null,
-      start_date: projectEditForm.start_date || null,
-      end_date: projectEditForm.end_date || null,
-    }).eq('id', id);
+    await supabase.from('projects').update({ name: projectEditForm.name, description: projectEditForm.description || null, start_date: projectEditForm.start_date || null, end_date: projectEditForm.end_date || null }).eq('id', id);
     setEditingProject(false);
     load();
   }
@@ -82,11 +76,25 @@ export default function ProjectDetail() {
     load();
   }
 
+  async function saveLogEdit() {
+    if (!editingLogId) return;
+    await supabase.from('project_logs').update(logEditForm).eq('id', editingLogId);
+    setEditingLogId(null);
+    load();
+  }
+
   async function addRisk() {
     if (!riskForm.description.trim()) return;
     await supabase.from('risks').insert({ ...riskForm, project_id: id });
     setRiskForm({ description: '', severity: 'medium' });
     setShowRiskForm(false);
+    load();
+  }
+
+  async function saveRiskEdit() {
+    if (!editingRiskId) return;
+    await supabase.from('risks').update(riskEditForm).eq('id', editingRiskId);
+    setEditingRiskId(null);
     load();
   }
 
@@ -98,24 +106,21 @@ export default function ProjectDetail() {
   function deleteTask(taskId: string) {
     setConfirm({ message: 'Delete this task permanently?', onConfirm: async () => {
       await supabase.from('tasks').delete().eq('id', taskId);
-      setConfirm(null);
-      load();
+      setConfirm(null); load();
     }});
   }
 
   function deleteLog(logId: string) {
     setConfirm({ message: 'Delete this log entry?', onConfirm: async () => {
       await supabase.from('project_logs').delete().eq('id', logId);
-      setConfirm(null);
-      load();
+      setConfirm(null); load();
     }});
   }
 
   function deleteRisk(riskId: string) {
     setConfirm({ message: 'Delete this risk?', onConfirm: async () => {
       await supabase.from('risks').delete().eq('id', riskId);
-      setConfirm(null);
-      load();
+      setConfirm(null); load();
     }});
   }
 
@@ -170,9 +175,7 @@ export default function ProjectDetail() {
               <button className="btn-ghost sm" onClick={startEditProject}>Edit</button>
               {editingState ? (
                 <div className="inline-select">
-                  {STATES.map(s => (
-                    <button key={s} className={`btn-ghost sm ${project.state === s ? 'active' : ''}`} onClick={() => updateState(s)}>{s}</button>
-                  ))}
+                  {STATES.map(s => <button key={s} className={`btn-ghost sm ${project.state === s ? 'active' : ''}`} onClick={() => updateState(s)}>{s}</button>)}
                 </div>
               ) : (
                 <button className="badge clickable" onClick={() => setEditingState(true)}>{project.state}</button>
@@ -187,7 +190,6 @@ export default function ProjectDetail() {
           <h2>Tasks</h2>
           <button className="btn" onClick={() => setShowTaskForm(s => !s)}>+ Add Task</button>
         </div>
-
         {showTaskForm && (
           <div className="form-card">
             <input placeholder="Task title" value={taskForm.title} onChange={e => setTaskForm(f => ({ ...f, title: e.target.value }))} />
@@ -205,11 +207,8 @@ export default function ProjectDetail() {
             </div>
           </div>
         )}
-
         <table className="table">
-          <thead>
-            <tr><th>Title</th><th>Assignee</th><th>Status</th><th></th></tr>
-          </thead>
+          <thead><tr><th>Title</th><th>Assignee</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {tasks.map(t => (
               <tr key={t.id}>
@@ -235,7 +234,6 @@ export default function ProjectDetail() {
           <h2>Risks</h2>
           <button className="btn" onClick={() => setShowRiskForm(s => !s)}>+ Add Risk</button>
         </div>
-
         {showRiskForm && (
           <div className="form-card">
             <textarea placeholder="Describe the risk" value={riskForm.description} onChange={e => setRiskForm(f => ({ ...f, description: e.target.value }))} />
@@ -248,15 +246,30 @@ export default function ProjectDetail() {
             </div>
           </div>
         )}
-
         <div className="log-list">
           {risks.map(r => (
             <div key={r.id} className="log-entry">
-              <div className="log-meta">
-                <span className={`badge severity-${r.severity}`}>{r.severity}</span>
-                <button className="log-delete" onClick={() => deleteRisk(r.id)} title="Delete">×</button>
-              </div>
-              <div className="log-notes">{r.description}</div>
+              {editingRiskId === r.id ? (
+                <div className="log-entry-edit">
+                  <textarea value={riskEditForm.description} onChange={e => setRiskEditForm(f => ({ ...f, description: e.target.value }))} />
+                  <select value={riskEditForm.severity} onChange={e => setRiskEditForm(f => ({ ...f, severity: e.target.value as Severity }))}>
+                    {SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <div className="form-actions">
+                    <button className="btn" onClick={saveRiskEdit}>Save</button>
+                    <button className="btn-ghost" onClick={() => setEditingRiskId(null)}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="log-meta">
+                    <span className={`badge severity-${r.severity}`}>{r.severity}</span>
+                    <button className="btn-ghost sm" onClick={() => { setEditingRiskId(r.id); setRiskEditForm({ description: r.description, severity: r.severity }); }}>Edit</button>
+                    <button className="log-delete" onClick={() => deleteRisk(r.id)} title="Delete">×</button>
+                  </div>
+                  <div className="log-notes">{r.description}</div>
+                </>
+              )}
             </div>
           ))}
           {risks.length === 0 && <div className="empty">No risks logged</div>}
@@ -268,7 +281,6 @@ export default function ProjectDetail() {
           <h2>Progress Log</h2>
           <button className="btn" onClick={() => setShowLogForm(s => !s)}>+ Add Entry</button>
         </div>
-
         {showLogForm && (
           <div className="form-card">
             <input type="date" value={logForm.log_date} onChange={e => setLogForm(f => ({ ...f, log_date: e.target.value }))} />
@@ -283,19 +295,34 @@ export default function ProjectDetail() {
             </div>
           </div>
         )}
-
         <div className="log-list">
           {logs.map(l => (
             <div key={l.id} className={`log-entry ${l.flagged ? 'flagged' : ''}`}>
-              <div className="log-meta">
-                <span className="log-date">{l.log_date}</span>
-                {l.flagged && <span className="flag-badge">⚑ Flagged</span>}
-                <button className="btn-ghost sm" onClick={() => toggleLogFlag(l.id, l.flagged ?? false)}>
-                  {l.flagged ? 'Unflag' : 'Flag'}
-                </button>
-                <button className="log-delete" onClick={() => deleteLog(l.id)} title="Delete">×</button>
-              </div>
-              <div className="log-notes">{l.notes}</div>
+              {editingLogId === l.id ? (
+                <div className="log-entry-edit">
+                  <input type="date" value={logEditForm.log_date} onChange={e => setLogEditForm(f => ({ ...f, log_date: e.target.value }))} />
+                  <textarea value={logEditForm.notes} onChange={e => setLogEditForm(f => ({ ...f, notes: e.target.value }))} />
+                  <label className="checkbox-label">
+                    <input type="checkbox" checked={logEditForm.flagged} onChange={e => setLogEditForm(f => ({ ...f, flagged: e.target.checked }))} />
+                    Flagged
+                  </label>
+                  <div className="form-actions">
+                    <button className="btn" onClick={saveLogEdit}>Save</button>
+                    <button className="btn-ghost" onClick={() => setEditingLogId(null)}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="log-meta">
+                    <span className="log-date">{l.log_date}</span>
+                    {l.flagged && <span className="flag-badge">⚑ Flagged</span>}
+                    <button className="btn-ghost sm" onClick={() => { setEditingLogId(l.id); setLogEditForm({ notes: l.notes, log_date: l.log_date, flagged: l.flagged ?? false }); }}>Edit</button>
+                    <button className="btn-ghost sm" onClick={() => toggleLogFlag(l.id, l.flagged ?? false)}>{l.flagged ? 'Unflag' : 'Flag'}</button>
+                    <button className="log-delete" onClick={() => deleteLog(l.id)} title="Delete">×</button>
+                  </div>
+                  <div className="log-notes">{l.notes}</div>
+                </>
+              )}
             </div>
           ))}
           {logs.length === 0 && <div className="empty">No log entries</div>}

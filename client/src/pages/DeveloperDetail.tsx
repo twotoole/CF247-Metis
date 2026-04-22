@@ -17,6 +17,8 @@ export default function PersonDetail() {
   const [form, setForm] = useState({ notes: '', flagged: false, log_date: new Date().toISOString().split('T')[0] });
   const [editingPerson, setEditingPerson] = useState(false);
   const [personEditForm, setPersonEditForm] = useState({ name: '', role: '' });
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [logEditForm, setLogEditForm] = useState({ notes: '', log_date: '', flagged: false });
 
   async function load() {
     const [{ data: dev }, { data: logData }, { data: taskData }] = await Promise.all([
@@ -59,6 +61,13 @@ export default function PersonDetail() {
     await supabase.from('developer_logs').insert({ ...form, developer_id: id });
     setForm({ notes: '', flagged: false, log_date: new Date().toISOString().split('T')[0] });
     setShowForm(false);
+    load();
+  }
+
+  async function saveLogEdit() {
+    if (!editingLogId) return;
+    await supabase.from('developer_logs').update(logEditForm).eq('id', editingLogId);
+    setEditingLogId(null);
     load();
   }
 
@@ -137,15 +146,33 @@ export default function PersonDetail() {
           <div className="log-list">
             {logs.map(l => (
               <div key={l.id} className={`log-entry ${l.flagged ? 'flagged' : ''}`}>
-                <div className="log-meta">
-                  <span className="log-date">{l.log_date}</span>
-                  {l.flagged && <span className="flag-badge">⚑ Flagged</span>}
-                  <button className="btn-ghost sm" onClick={() => toggleFlag(l.id, l.flagged)}>
-                    {l.flagged ? 'Unflag' : 'Flag'}
-                  </button>
-                  <button className="log-delete" onClick={() => deleteLog(l.id)} title="Delete">×</button>
-                </div>
-                <div className="log-notes">{l.notes}</div>
+                {editingLogId === l.id ? (
+                  <div className="log-entry-edit">
+                    <input type="date" value={logEditForm.log_date} onChange={e => setLogEditForm(f => ({ ...f, log_date: e.target.value }))} />
+                    <textarea value={logEditForm.notes} onChange={e => setLogEditForm(f => ({ ...f, notes: e.target.value }))} />
+                    <label className="checkbox-label">
+                      <input type="checkbox" checked={logEditForm.flagged} onChange={e => setLogEditForm(f => ({ ...f, flagged: e.target.checked }))} />
+                      Flagged
+                    </label>
+                    <div className="form-actions">
+                      <button className="btn" onClick={saveLogEdit}>Save</button>
+                      <button className="btn-ghost" onClick={() => setEditingLogId(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="log-meta">
+                      <span className="log-date">{l.log_date}</span>
+                      {l.flagged && <span className="flag-badge">⚑ Flagged</span>}
+                      <button className="btn-ghost sm" onClick={() => { setEditingLogId(l.id); setLogEditForm({ notes: l.notes, log_date: l.log_date, flagged: l.flagged }); }}>Edit</button>
+                      <button className="btn-ghost sm" onClick={() => toggleFlag(l.id, l.flagged)}>
+                        {l.flagged ? 'Unflag' : 'Flag'}
+                      </button>
+                      <button className="log-delete" onClick={() => deleteLog(l.id)} title="Delete">×</button>
+                    </div>
+                    <div className="log-notes">{l.notes}</div>
+                  </>
+                )}
               </div>
             ))}
             {logs.length === 0 && <div className="empty">No log entries</div>}
