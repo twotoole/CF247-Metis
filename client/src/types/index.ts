@@ -66,6 +66,7 @@ export interface Request {
   id: string;
   title: string;
   description: string | null;
+  requester: string | null;
   status: RequestStatus;
   created_at: string;
 }

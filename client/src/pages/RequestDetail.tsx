@@ -13,7 +13,7 @@ export default function RequestDetail() {
   const [noteForm, setNoteForm] = useState({ notes: '', log_date: new Date().toISOString().split('T')[0] });
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [editingRequest, setEditingRequest] = useState(false);
-  const [editForm, setEditForm] = useState({ title: '', description: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', requester: '' });
   const [editingStatus, setEditingStatus] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteEditForm, setNoteEditForm] = useState({ notes: '', log_date: '' });
@@ -32,13 +32,13 @@ export default function RequestDetail() {
 
   function startEdit() {
     if (!request) return;
-    setEditForm({ title: request.title, description: request.description ?? '' });
+    setEditForm({ title: request.title, description: request.description ?? '', requester: request.requester ?? '' });
     setEditingRequest(true);
     setEditingStatus(false);
   }
 
   async function saveEdit() {
-    await supabase.from('requests').update({ title: editForm.title, description: editForm.description || null }).eq('id', id);
+    await supabase.from('requests').update({ title: editForm.title, description: editForm.description || null, requester: editForm.requester || null }).eq('id', id);
     setEditingRequest(false);
     load();
   }
@@ -83,11 +83,13 @@ export default function RequestDetail() {
           {editingRequest ? (
             <div className="edit-fields">
               <input className="edit-title" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
+              <input className="edit-sub" placeholder="Requester" value={editForm.requester} onChange={e => setEditForm(f => ({ ...f, requester: e.target.value }))} />
               <input className="edit-sub" placeholder="Description" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
             </div>
           ) : (
             <>
               <h1>{request.title}</h1>
+              {request.requester && <p className="meta">Requested by {request.requester}</p>}
               {request.description && <p className="subtitle">{request.description}</p>}
             </>
           )}
