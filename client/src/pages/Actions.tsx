@@ -10,16 +10,18 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { supabase } from '../lib/supabase';
+import ConfirmModal from '../components/ConfirmModal';
 import type { Task, TaskStatus, Project, Developer } from '../types';
 
 type SortMode = 'default' | 'asc' | 'desc';
 const TASK_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
 const today = new Date().toISOString().split('T')[0];
 
-function SortableActionRow({ action, sortMode, onStatusChange }: {
+function SortableActionRow({ action, sortMode, onStatusChange, onDelete }: {
   action: Task;
   sortMode: SortMode;
   onStatusChange: (id: string, status: TaskStatus) => void;
+  onDelete: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: action.id,
@@ -57,6 +59,9 @@ function SortableActionRow({ action, sortMode, onStatusChange }: {
         </select>
       </td>
       <td className="sub">{action.created_at.split('T')[0]}</td>
+      <td className="row-actions">
+        <button className="btn-danger sm" onClick={() => onDelete(action.id)}>Delete</button>
+      </td>
     </tr>
   );
 }
@@ -68,6 +73,7 @@ export default function Actions() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', project_id: '', developer_id: '', status: 'todo' as TaskStatus, due_date: '' });
   const [sortMode, setSortMode] = useState<SortMode>('default');
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -106,6 +112,14 @@ export default function Actions() {
     load();
   }
 
+  function deleteAction(id: string) {
+    setConfirm({ message: 'Delete this action permanently?', onConfirm: async () => {
+      await supabase.from('tasks').delete().eq('id', id);
+      setConfirm(null);
+      load();
+    }});
+  }
+
   async function updateStatus(id: string, status: TaskStatus) {
     await supabase.from('tasks').update({ status }).eq('id', id);
     load();
@@ -139,6 +153,7 @@ export default function Actions() {
 
   return (
     <div>
+      {confirm && <ConfirmModal message={confirm.message} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
       <div className="page-header">
         <h1>Actions</h1>
         <button className="btn" onClick={() => setShowForm(s => !s)}>+ New Action</button>
@@ -179,13 +194,14 @@ export default function Actions() {
                 <th>Due</th>
                 <th>Status</th>
                 <th className="sort-header" onClick={cycleSortMode}>Added{sortIndicator}</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {displayedActions.map(a => (
-                <SortableActionRow key={a.id} action={a} sortMode={sortMode} onStatusChange={updateStatus} />
+                <SortableActionRow key={a.id} action={a} sortMode={sortMode} onStatusChange={updateStatus} onDelete={deleteAction} />
               ))}
-              {displayedActions.length === 0 && <tr><td colSpan={7} className="empty">No actions</td></tr>}
+              {displayedActions.length === 0 && <tr><td colSpan={8} className="empty">No actions</td></tr>}
             </tbody>
           </table>
         </SortableContext>
