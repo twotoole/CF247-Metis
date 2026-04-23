@@ -615,6 +615,8 @@ body {
   border: 1px solid #e8e8e8;
   padding: 1.25rem 1.5rem 1.5rem;
 }
+.dash-actions-section { grid-column: 1 / -1; }
+
 .dash-source {
   font-size: 11px;
   font-weight: 600;

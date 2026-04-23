@@ -128,29 +128,28 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="section dash-section">
+        <section className="section dash-section dash-actions-section">
           <div className="section-header">
             <h2>Open Actions</h2>
           </div>
           {openActions.length === 0 && <div className="empty">No open actions</div>}
-          <table className="table">
+          <table className="table dash-actions-table">
             <thead>
-              <tr><th>Action</th><th>Project</th><th>Assignee</th><th>Due</th><th>Status</th></tr>
+              <tr><th>Action</th><th>Project</th><th>Due</th><th>Status</th></tr>
             </thead>
             <tbody>
               {openActions.map(a => (
                 <tr key={a.id}>
-                  <td>{a.title}</td>
-                  <td>
+                  <td style={{ wordBreak: 'break-word', maxWidth: 180 }}>{a.title}</td>
+                  <td className="sub" style={{ whiteSpace: 'nowrap' }}>
                     {a.project
                       ? <Link to={`/projects/${a.project.id}`}>{a.project.name}</Link>
-                      : <span className="sub">—</span>}
+                      : '—'}
                   </td>
-                  <td className="sub">{a.developer?.name ?? '—'}</td>
-                  <td className={a.due_date && a.due_date < today ? 'overdue-text' : 'sub'}>
+                  <td className={a.due_date && a.due_date < today ? 'overdue-text' : 'sub'} style={{ whiteSpace: 'nowrap' }}>
                     {a.due_date ?? '—'}
                   </td>
-                  <td><span className="badge">{a.status}</span></td>
+                  <td style={{ whiteSpace: 'nowrap' }}><span className="badge">{a.status}</span></td>
                 </tr>
               ))}
             </tbody>
