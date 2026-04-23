@@ -55,7 +55,9 @@ function SortableProjectRow({ project, flaggedIds, isEditing, anyEditing, onTogg
       <td>
         {pct !== null ? (
           <div className="progress-wrap">
-            <div className="progress-bar" style={{ width: `${pct}%` }} />
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${pct}%` }} />
+            </div>
             <span className="progress-label">{pct}%</span>
           </div>
         ) : '—'}
