@@ -6,6 +6,7 @@ export default function Layout() {
       <aside className="sidebar">
         <div className="sidebar-brand">CF247 Metis</div>
         <nav className="sidebar-nav">
+          <NavLink to="/dashboard">Dashboard</NavLink>
           <NavLink to="/projects">Projects</NavLink>
           <NavLink to="/people">People</NavLink>
           <NavLink to="/actions">Actions</NavLink>

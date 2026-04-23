@@ -15,7 +15,7 @@ export default function ProjectDetail() {
   const [logs, setLogs] = useState<ProjectLog[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', developer_id: '', status: 'todo' as TaskStatus });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', developer_id: '', status: 'todo' as TaskStatus, due_date: '' });
   const [logForm, setLogForm] = useState({ notes: '', log_date: new Date().toISOString().split('T')[0], flagged: false });
   const [riskForm, setRiskForm] = useState({ description: '', severity: 'medium' as Severity });
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -66,8 +66,8 @@ export default function ProjectDetail() {
 
   async function addTask() {
     if (!taskForm.title.trim()) return;
-    await supabase.from('tasks').insert({ ...taskForm, project_id: id, developer_id: taskForm.developer_id || null });
-    setTaskForm({ title: '', description: '', developer_id: '', status: 'todo' });
+    await supabase.from('tasks').insert({ ...taskForm, project_id: id, developer_id: taskForm.developer_id || null, due_date: taskForm.due_date || null });
+    setTaskForm({ title: '', description: '', developer_id: '', status: 'todo', due_date: '' });
     setShowTaskForm(false);
     load();
   }
@@ -202,6 +202,7 @@ export default function ProjectDetail() {
               <option value="">Unassigned</option>
               {developers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
+            <input type="date" placeholder="Due date" value={taskForm.due_date} onChange={e => setTaskForm(f => ({ ...f, due_date: e.target.value }))} />
             <select value={taskForm.status} onChange={e => setTaskForm(f => ({ ...f, status: e.target.value as TaskStatus }))}>
               {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -212,12 +213,15 @@ export default function ProjectDetail() {
           </div>
         )}
         <table className="table">
-          <thead><tr><th>Title</th><th>Assignee</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Title</th><th>Assignee</th><th>Due</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {tasks.map(t => (
               <tr key={t.id}>
                 <td>{t.title}{t.description && <span className="sub"> — {t.description}</span>}</td>
-                <td>{t.developer?.name ?? '—'}</td>
+                <td className="sub">{t.developer?.name ?? '—'}</td>
+                <td className={t.due_date && t.due_date < new Date().toISOString().split('T')[0] ? 'overdue-text' : 'sub'}>
+                  {t.due_date ?? '—'}
+                </td>
                 <td>
                   <select value={t.status} onChange={e => updateTaskStatus(t.id, e.target.value as TaskStatus)}>
                     {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -228,7 +232,7 @@ export default function ProjectDetail() {
                 </td>
               </tr>
             ))}
-            {tasks.length === 0 && <tr><td colSpan={4} className="empty">No actions</td></tr>}
+            {tasks.length === 0 && <tr><td colSpan={5} className="empty">No actions</td></tr>}
           </tbody>
         </table>
       </section>

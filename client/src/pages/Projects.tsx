@@ -14,6 +14,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import type { Project, ProjectState } from '../types';
 
 const STATES: ProjectState[] = ['pre-production', 'production', 'post-production'];
+const today = new Date().toISOString().split('T')[0];
 
 function getProgress(start: string | null, end: string | null): number | null {
   if (!start || !end) return null;
@@ -51,7 +52,10 @@ function SortableProjectRow({ project, flaggedIds, isEditing, anyEditing, onTogg
       </td>
       <td><span className="badge">{project.state}</span></td>
       <td className="sub">{project.start_date ?? '—'}</td>
-      <td className="sub">{project.end_date ?? '—'}</td>
+      <td className={project.end_date && project.end_date < today ? 'overdue-text' : 'sub'}>
+        {project.end_date ?? '—'}
+        {project.end_date && project.end_date < today && <span className="overdue-badge">overdue</span>}
+      </td>
       <td>
         {pct !== null ? (
           <div className="progress-wrap">

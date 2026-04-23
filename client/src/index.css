@@ -587,3 +587,53 @@ body {
   padding: 2rem 0;
   text-align: center;
 }
+
+/* ── Dashboard ──────────────────────────────────────── */
+.dash-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+.dash-stat {
+  font-size: 12px;
+  color: #999;
+}
+.dash-stat strong {
+  color: #111;
+  font-size: 14px;
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 2rem;
+  align-items: start;
+}
+.dash-section {
+  margin-top: 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+.dash-source {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  text-decoration: none;
+}
+.dash-source:hover { text-decoration: underline; color: #000; }
+
+/* ── Overdue ────────────────────────────────────────── */
+.overdue-text { color: #111; font-weight: 700; font-size: 12px; }
+.overdue-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: #111;
+  color: #fff;
+  padding: 0.1rem 0.35rem;
+  vertical-align: middle;
+}

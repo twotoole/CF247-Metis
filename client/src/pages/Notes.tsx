@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import ConfirmModal from '../components/ConfirmModal';
-import type { Standup, Meeting, Action, ActionStatus } from '../types';
+import type { Standup, Meeting, Task, TaskStatus } from '../types';
 
 type Tab = 'standups' | 'meetings' | 'actions';
-const ACTION_STATUSES: ActionStatus[] = ['open', 'in-progress', 'done'];
+const TASK_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
 const today = new Date().toISOString().split('T')[0];
 
 export default function Notes() {
@@ -12,7 +12,7 @@ export default function Notes() {
   const [showArchived, setShowArchived] = useState(false);
   const [standups, setStandups] = useState<Standup[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [actions, setActions] = useState<Action[]>([]);
+  const [actions, setActions] = useState<Task[]>([]);
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const [showStandupForm, setShowStandupForm] = useState(false);
@@ -22,7 +22,7 @@ export default function Notes() {
   const [meetingForm, setMeetingForm] = useState({ title: '', group_name: '', notes: '', meeting_date: today });
 
   const [showActionFormFor, setShowActionFormFor] = useState<string | null>(null);
-  const [actionForm, setActionForm] = useState({ description: '', status: 'open' as ActionStatus });
+  const [actionForm, setActionForm] = useState({ title: '', status: 'todo' as TaskStatus });
 
   const [editingStandupId, setEditingStandupId] = useState<string | null>(null);
   const [standupEditForm, setStandupEditForm] = useState({ notes: '', standup_date: '' });
@@ -31,7 +31,8 @@ export default function Notes() {
   const [meetingEditForm, setMeetingEditForm] = useState({ title: '', group_name: '', notes: '', meeting_date: '' });
 
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
-  const [actionEditForm, setActionEditForm] = useState({ description: '', status: 'open' as ActionStatus });
+  const [actionEditForm, setActionEditForm] = useState({ title: '', status: 'todo' as TaskStatus });
+
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   function toggleEntry(id: string) {
     setExpandedIds((s: Set<string>) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -41,8 +42,10 @@ export default function Notes() {
     const [{ data: su }, { data: mt }, { data: ac }] = await Promise.all([
       supabase.from('standups').select('*').eq('archived', showArchived).order('standup_date', { ascending: false }),
       supabase.from('meetings').select('*').eq('archived', showArchived).order('meeting_date', { ascending: false }),
-      supabase.from('actions')
-        .select('*, standup:standups(id, standup_date), meeting:meetings(id, title, group_name)')
+      supabase.from('tasks')
+        .select('*, standup:standups(id, standup_date), meeting:meetings(id, title)')
+        .or('standup_id.not.is.null,meeting_id.not.is.null')
+        .eq('archived', false)
         .order('created_at', { ascending: false }),
     ]);
     setStandups(su ?? []);
@@ -113,39 +116,40 @@ export default function Notes() {
   }
 
   async function addAction(sourceType: 'standup' | 'meeting', sourceId: string) {
-    if (!actionForm.description.trim()) return;
-    await supabase.from('actions').insert({
-      description: actionForm.description,
+    if (!actionForm.title.trim()) return;
+    await supabase.from('tasks').insert({
+      title: actionForm.title,
       status: actionForm.status,
       standup_id: sourceType === 'standup' ? sourceId : null,
       meeting_id: sourceType === 'meeting' ? sourceId : null,
+      archived: false,
     });
-    setActionForm({ description: '', status: 'open' });
+    setActionForm({ title: '', status: 'todo' });
     setShowActionFormFor(null);
     load();
   }
 
   async function saveActionEdit() {
     if (!editingActionId) return;
-    await supabase.from('actions').update(actionEditForm).eq('id', editingActionId);
+    await supabase.from('tasks').update(actionEditForm).eq('id', editingActionId);
     setEditingActionId(null);
     load();
   }
 
-  async function updateActionStatus(id: string, status: ActionStatus) {
-    await supabase.from('actions').update({ status }).eq('id', id);
+  async function updateActionStatus(id: string, status: TaskStatus) {
+    await supabase.from('tasks').update({ status }).eq('id', id);
     load();
   }
 
   function deleteAction(id: string) {
     setConfirm({ message: 'Delete this action?', onConfirm: async () => {
-      await supabase.from('actions').delete().eq('id', id);
+      await supabase.from('tasks').delete().eq('id', id);
       setConfirm(null);
       load();
     }});
   }
 
-  const actionsBySource = new Map<string, Action[]>();
+  const actionsBySource = new Map<string, Task[]>();
   for (const a of actions) {
     const key = a.standup_id ?? a.meeting_id ?? '';
     if (!key) continue;
@@ -169,16 +173,16 @@ export default function Notes() {
             {sourceActions.map(a => (
               <div key={a.id} className="action-item">
                 <span className={`badge status-${a.status}`}>{a.status}</span>
-                <span className="action-desc">{a.description}</span>
+                <span className="action-desc">{a.title}</span>
               </div>
             ))}
           </div>
         )}
         {showActionFormFor === sourceId ? (
           <div className="action-form">
-            <input placeholder="Action description" value={actionForm.description} onChange={e => setActionForm(f => ({ ...f, description: e.target.value }))} />
-            <select value={actionForm.status} onChange={e => setActionForm(f => ({ ...f, status: e.target.value as ActionStatus }))}>
-              {ACTION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            <input placeholder="Action title" value={actionForm.title} onChange={e => setActionForm(f => ({ ...f, title: e.target.value }))} />
+            <select value={actionForm.status} onChange={e => setActionForm(f => ({ ...f, status: e.target.value as TaskStatus }))}>
+              {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <div className="form-actions">
               <button className="btn" onClick={() => addAction(sourceType, sourceId)}>Save</button>
@@ -186,7 +190,7 @@ export default function Notes() {
             </div>
           </div>
         ) : (
-          <button className="btn-ghost sm" style={{ marginTop: '0.5rem', alignSelf: 'flex-start' }} onClick={() => { setShowActionFormFor(sourceId); setActionForm({ description: '', status: 'open' }); }}>+ Action</button>
+          <button className="btn-ghost sm" style={{ marginTop: '0.5rem', alignSelf: 'flex-start' }} onClick={() => { setShowActionFormFor(sourceId); setActionForm({ title: '', status: 'todo' }); }}>+ Action</button>
         )}
       </>
     );
@@ -246,9 +250,9 @@ export default function Notes() {
                         <span className="log-date">{s.standup_date}</span>
                         {!expanded && <span className="log-preview">{s.notes}</span>}
                         {expanded && <>
-                          <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); setEditingStandupId(s.id); setStandupEditForm({ notes: s.notes, standup_date: s.standup_date }); }}>Edit</button>
-                          <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); archiveStandup(s.id); }}>{showArchived ? 'Unarchive' : 'Archive'}</button>
-                          <button className="log-delete" onClick={e =>{ e.stopPropagation(); deleteStandup(s.id); }} title="Delete">×</button>
+                          <button className="btn-ghost sm" onClick={e => { e.stopPropagation(); setEditingStandupId(s.id); setStandupEditForm({ notes: s.notes, standup_date: s.standup_date }); }}>Edit</button>
+                          <button className="btn-ghost sm" onClick={e => { e.stopPropagation(); archiveStandup(s.id); }}>{showArchived ? 'Unarchive' : 'Archive'}</button>
+                          <button className="log-delete" onClick={e => { e.stopPropagation(); deleteStandup(s.id); }} title="Delete">×</button>
                         </>}
                         <span className="log-toggle">{expanded ? '▲' : '▼'}</span>
                       </div>
@@ -303,9 +307,9 @@ export default function Notes() {
                             <span className="log-date">{m.meeting_date}</span>
                             <span className="meeting-title" style={{ flex: 1 }}>{m.title}</span>
                             {expanded && <>
-                              <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); setEditingMeetingId(m.id); setMeetingEditForm({ title: m.title, group_name: m.group_name ?? '', notes: m.notes ?? '', meeting_date: m.meeting_date }); }}>Edit</button>
-                              <button className="btn-ghost sm" onClick={e =>{ e.stopPropagation(); archiveMeeting(m.id); }}>{showArchived ? 'Unarchive' : 'Archive'}</button>
-                              <button className="log-delete" onClick={e =>{ e.stopPropagation(); deleteMeeting(m.id); }} title="Delete">×</button>
+                              <button className="btn-ghost sm" onClick={e => { e.stopPropagation(); setEditingMeetingId(m.id); setMeetingEditForm({ title: m.title, group_name: m.group_name ?? '', notes: m.notes ?? '', meeting_date: m.meeting_date }); }}>Edit</button>
+                              <button className="btn-ghost sm" onClick={e => { e.stopPropagation(); archiveMeeting(m.id); }}>{showArchived ? 'Unarchive' : 'Archive'}</button>
+                              <button className="log-delete" onClick={e => { e.stopPropagation(); deleteMeeting(m.id); }} title="Delete">×</button>
                             </>}
                             <span className="log-toggle">{expanded ? '▲' : '▼'}</span>
                           </div>
@@ -330,9 +334,9 @@ export default function Notes() {
               <div key={a.id} className="log-entry">
                 {editingActionId === a.id ? (
                   <div className="log-entry-edit">
-                    <input placeholder="Description" value={actionEditForm.description} onChange={e => setActionEditForm(f => ({ ...f, description: e.target.value }))} />
-                    <select value={actionEditForm.status} onChange={e => setActionEditForm(f => ({ ...f, status: e.target.value as ActionStatus }))}>
-                      {ACTION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    <input placeholder="Title" value={actionEditForm.title} onChange={e => setActionEditForm(f => ({ ...f, title: e.target.value }))} />
+                    <select value={actionEditForm.status} onChange={e => setActionEditForm(f => ({ ...f, status: e.target.value as TaskStatus }))}>
+                      {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <div className="form-actions">
                       <button className="btn" onClick={saveActionEdit}>Save</button>
@@ -344,15 +348,15 @@ export default function Notes() {
                     <div className="log-meta">
                       <span className={`badge status-${a.status}`}>{a.status}</span>
                       <span className="sub">
-                        {a.standup ? `Stand-up ${a.standup.standup_date}` : a.meeting ? `${a.meeting.title}${a.meeting.group_name ? ` · ${a.meeting.group_name}` : ''}` : '—'}
+                        {a.standup ? `Stand-up ${a.standup.standup_date}` : a.meeting ? a.meeting.title : '—'}
                       </span>
-                      <select className="status-select" value={a.status} onChange={e => updateActionStatus(a.id, e.target.value as ActionStatus)}>
-                        {ACTION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                      <select value={a.status} onChange={e => updateActionStatus(a.id, e.target.value as TaskStatus)}>
+                        {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <button className="btn-ghost sm" onClick={() => { setEditingActionId(a.id); setActionEditForm({ description: a.description, status: a.status }); }}>Edit</button>
+                      <button className="btn-ghost sm" onClick={() => { setEditingActionId(a.id); setActionEditForm({ title: a.title, status: a.status }); }}>Edit</button>
                       <button className="log-delete" onClick={() => deleteAction(a.id)} title="Delete">×</button>
                     </div>
-                    <div className="log-notes">{a.description}</div>
+                    <div className="log-notes">{a.title}</div>
                   </>
                 )}
               </div>

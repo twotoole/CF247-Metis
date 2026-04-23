@@ -14,6 +14,7 @@ import type { Task, TaskStatus, Project, Developer } from '../types';
 
 type SortMode = 'default' | 'asc' | 'desc';
 const TASK_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
+const today = new Date().toISOString().split('T')[0];
 
 function SortableActionRow({ action, sortMode, onStatusChange }: {
   action: Task;
@@ -25,6 +26,12 @@ function SortableActionRow({ action, sortMode, onStatusChange }: {
     disabled: sortMode !== 'default',
   });
 
+  const source = action.standup
+    ? `Stand-up ${action.standup.standup_date}`
+    : action.meeting
+      ? action.meeting.title
+      : null;
+
   return (
     <tr ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}>
       <td className="drag-cell">
@@ -33,13 +40,17 @@ function SortableActionRow({ action, sortMode, onStatusChange }: {
       <td>
         {action.title}
         {action.description && <span className="sub"> — {action.description}</span>}
+        {source && <span className="sub"> · {source}</span>}
       </td>
       <td>
         {action.project
           ? <Link to={`/projects/${action.project.id}`}>{action.project.name}</Link>
           : '—'}
       </td>
-      <td>{action.developer?.name ?? '—'}</td>
+      <td className="sub">{action.developer?.name ?? '—'}</td>
+      <td className={action.due_date && action.due_date < today ? 'overdue-text' : 'sub'}>
+        {action.due_date ?? '—'}
+      </td>
       <td>
         <select value={action.status} onChange={e => onStatusChange(action.id, e.target.value as TaskStatus)}>
           {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -55,7 +66,7 @@ export default function Actions() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', project_id: '', developer_id: '', status: 'todo' as TaskStatus });
+  const [form, setForm] = useState({ title: '', description: '', project_id: '', developer_id: '', status: 'todo' as TaskStatus, due_date: '' });
   const [sortMode, setSortMode] = useState<SortMode>('default');
 
   const sensors = useSensors(
@@ -65,7 +76,8 @@ export default function Actions() {
 
   async function load() {
     const [{ data: taskData }, { data: projectData }, { data: devData }] = await Promise.all([
-      supabase.from('tasks').select('*, project:projects(id, name), developer:developers(id, name)')
+      supabase.from('tasks')
+        .select('*, project:projects(id, name), developer:developers(id, name), standup:standups(id, standup_date), meeting:meetings(id, title)')
         .eq('archived', false)
         .order('sort_order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false }),
@@ -87,8 +99,9 @@ export default function Actions() {
       project_id: form.project_id || null,
       developer_id: form.developer_id || null,
       status: form.status,
+      due_date: form.due_date || null,
     });
-    setForm({ title: '', description: '', project_id: '', developer_id: '', status: 'todo' });
+    setForm({ title: '', description: '', project_id: '', developer_id: '', status: 'todo', due_date: '' });
     setShowForm(false);
     load();
   }
@@ -134,7 +147,7 @@ export default function Actions() {
       {showForm && (
         <div className="form-card">
           <input placeholder="Action title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-          <input placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          <input placeholder="Description (optional)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           <select value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))}>
             <option value="">No project</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -143,6 +156,7 @@ export default function Actions() {
             <option value="">Unassigned</option>
             {developers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
+          <input type="date" placeholder="Due date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as TaskStatus }))}>
             {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -162,6 +176,7 @@ export default function Actions() {
                 <th>Action</th>
                 <th>Project</th>
                 <th>Assignee</th>
+                <th>Due</th>
                 <th>Status</th>
                 <th className="sort-header" onClick={cycleSortMode}>Added{sortIndicator}</th>
               </tr>
@@ -170,7 +185,7 @@ export default function Actions() {
               {displayedActions.map(a => (
                 <SortableActionRow key={a.id} action={a} sortMode={sortMode} onStatusChange={updateStatus} />
               ))}
-              {displayedActions.length === 0 && <tr><td colSpan={6} className="empty">No actions</td></tr>}
+              {displayedActions.length === 0 && <tr><td colSpan={7} className="empty">No actions</td></tr>}
             </tbody>
           </table>
         </SortableContext>

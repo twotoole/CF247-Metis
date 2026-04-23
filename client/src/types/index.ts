@@ -2,7 +2,6 @@ export type ProjectState = 'pre-production' | 'production' | 'post-production';
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type Severity = 'low' | 'medium' | 'high';
 export type RequestStatus = 'pending' | 'in-progress' | 'done';
-export type ActionStatus = 'open' | 'in-progress' | 'done';
 
 export interface Developer {
   id: string;
@@ -25,15 +24,20 @@ export interface Project {
 
 export interface Task {
   id: string;
-  project_id: string;
+  project_id: string | null;
   developer_id: string | null;
+  standup_id: string | null;
+  meeting_id: string | null;
   title: string;
   description: string | null;
   status: TaskStatus;
+  due_date: string | null;
   archived: boolean;
   created_at: string;
   developer?: Developer;
-  project?: { id: string; name: string };
+  project?: { id: string; name: string } | null;
+  standup?: { id: string; standup_date: string } | null;
+  meeting?: { id: string; title: string } | null;
 }
 
 export interface ProjectLog {
@@ -43,6 +47,7 @@ export interface ProjectLog {
   flagged?: boolean;
   log_date: string;
   created_at: string;
+  project?: { id: string; name: string };
 }
 
 export interface DeveloperLog {
@@ -52,6 +57,7 @@ export interface DeveloperLog {
   flagged: boolean;
   log_date: string;
   created_at: string;
+  developer?: { id: string; name: string };
 }
 
 export interface Risk {
@@ -94,16 +100,5 @@ export interface Meeting {
   notes: string | null;
   meeting_date: string;
   archived: boolean;
-  created_at: string;
-}
-
-export interface Action {
-  id: string;
-  description: string;
-  status: ActionStatus;
-  standup_id: string | null;
-  meeting_id: string | null;
-  standup?: { id: string; standup_date: string } | null;
-  meeting?: { id: string; title: string; group_name: string | null } | null;
   created_at: string;
 }
