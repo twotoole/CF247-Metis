@@ -210,7 +210,6 @@ body {
   padding: 0.2rem 0.5rem;
   font-size: 12px;
   background: #fff;
-  border-radius: 4px;
   font-family: inherit;
   color: #333;
 }
@@ -227,7 +226,6 @@ body {
   padding: 1.25rem;
   margin-bottom: 1.5rem;
   max-width: 480px;
-  border-radius: 8px;
   background: #fff;
 }
 
@@ -240,7 +238,6 @@ body {
   font-family: inherit;
   background: #fff;
   width: 100%;
-  border-radius: 5px;
   color: #111;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -402,7 +399,6 @@ body {
   background: #fff;
   font-family: inherit;
   width: 100%;
-  border-radius: 5px;
   letter-spacing: -0.02em;
 }
 .edit-title:focus { outline: none; border-color: #111; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
@@ -415,7 +411,6 @@ body {
   background: #fff;
   font-family: inherit;
   width: 100%;
-  border-radius: 5px;
 }
 .edit-sub:focus { outline: none; border-color: #111; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
 
@@ -426,7 +421,6 @@ body {
   font-size: 13px;
   background: #fff;
   font-family: inherit;
-  border-radius: 5px;
 }
 .edit-dates input:focus { outline: none; border-color: #111; }
 
@@ -485,7 +479,6 @@ body {
   font-size: 13px;
   font-family: inherit;
   background: #fff;
-  border-radius: 4px;
 }
 .inline-edit-form input:focus,
 .inline-edit-form select:focus { outline: none; border-color: #111; }
@@ -539,7 +532,6 @@ body {
   font-size: 13px;
   font-family: inherit;
   background: #fff;
-  border-radius: 4px;
 }
 .action-form input:focus,
 .action-form select:focus { outline: none; border-color: #111; }
@@ -559,7 +551,6 @@ body {
   font-family: inherit;
   background: #fff;
   width: 100%;
-  border-radius: 5px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .log-entry-edit textarea { min-height: 70px; resize: vertical; }
