@@ -2,13 +2,19 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import ConfirmModal from '../components/ConfirmModal';
-import type { Project, Task, ProjectLog, Developer, Risk, Milestone, UserStory, ProjectState, TaskStatus, Severity, UserStoryStatus } from '../types';
+import type { Project, Task, ProjectLog, Developer, Risk, Milestone, ProjectState, TaskStatus, Severity } from '../types';
 
 const STATES: ProjectState[] = ['pre-production', 'production', 'post-production'];
 const TASK_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
 const SEVERITIES: Severity[] = ['low', 'medium', 'high'];
-const USER_STORY_STATUSES: UserStoryStatus[] = ['backlog', 'in-progress', 'done', 'accepted'];
 const today = new Date().toISOString().split('T')[0];
+
+interface ChecklistItem {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+}
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -17,53 +23,47 @@ export default function ProjectDetail() {
   const [logs, setLogs] = useState<ProjectLog[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [userStories, setUserStories] = useState<UserStory[]>([]);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
 
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', developer_id: '', status: 'todo' as TaskStatus, due_date: '', user_story_id: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', developer_id: '', status: 'todo' as TaskStatus, due_date: '' });
   const [logForm, setLogForm] = useState({ notes: '', log_date: new Date().toISOString().split('T')[0], flagged: false });
   const [riskForm, setRiskForm] = useState({ description: '', severity: 'medium' as Severity });
   const [milestoneForm, setMilestoneForm] = useState({ title: '', due_date: '' });
-  const [storyForm, setStoryForm] = useState({ title: '', acceptance_criteria: '', milestone_id: '', status: 'backlog' as UserStoryStatus });
+  const [checklistInput, setChecklistInput] = useState('');
 
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showLogForm, setShowLogForm] = useState(false);
   const [showRiskForm, setShowRiskForm] = useState(false);
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
-  const [showStoryForm, setShowStoryForm] = useState(false);
+  const [showChecklistForm, setShowChecklistForm] = useState(false);
 
   const [editingState, setEditingState] = useState(false);
   const [editingProject, setEditingProject] = useState(false);
-  const [projectEditForm, setProjectEditForm] = useState({ name: '', description: '', start_date: '', end_date: '' });
+  const [projectEditForm, setProjectEditForm] = useState({ name: '', description: '', start_date: '', end_date: '', jira_url: '' });
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [logEditForm, setLogEditForm] = useState({ notes: '', log_date: '', flagged: false });
   const [editingRiskId, setEditingRiskId] = useState<string | null>(null);
   const [riskEditForm, setRiskEditForm] = useState({ description: '', severity: 'medium' as Severity });
-  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
-  const [storyEditForm, setStoryEditForm] = useState({ title: '', acceptance_criteria: '', milestone_id: '', status: 'backlog' as UserStoryStatus });
   const [editingPrd, setEditingPrd] = useState(false);
   const [prdDraft, setPrdDraft] = useState('');
 
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
-  const [expandedStoryIds, setExpandedStoryIds] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   function toggleLog(logId: string) {
     setExpandedLogIds(s => { const n = new Set(s); n.has(logId) ? n.delete(logId) : n.add(logId); return n; });
   }
-  function toggleStory(storyId: string) {
-    setExpandedStoryIds(s => { const n = new Set(s); n.has(storyId) ? n.delete(storyId) : n.add(storyId); return n; });
-  }
 
   async function load() {
-    const [{ data: proj }, { data: taskData }, { data: logData }, { data: devData }, { data: riskData }, { data: milestoneData }, { data: storyData }] = await Promise.all([
+    const [{ data: proj }, { data: taskData }, { data: logData }, { data: devData }, { data: riskData }, { data: milestoneData }, { data: checklistData }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', id).single(),
       supabase.from('tasks').select('*, developer:developers(id,name)').eq('project_id', id).eq('archived', false).order('created_at'),
       supabase.from('project_logs').select('*').eq('project_id', id).order('log_date', { ascending: false }),
       supabase.from('developers').select('*').eq('archived', false).order('name'),
       supabase.from('risks').select('*').eq('project_id', id).order('created_at'),
       supabase.from('milestones').select('*').eq('project_id', id).order('due_date', { ascending: true, nullsFirst: false }).order('created_at'),
-      supabase.from('user_stories').select('*, milestone:milestones(id, title)').eq('project_id', id).order('sort_order', { ascending: true, nullsFirst: false }).order('created_at'),
+      supabase.from('user_stories').select('id, title, status, created_at').eq('project_id', id).order('created_at'),
     ]);
     setProject(proj);
     setTasks(taskData ?? []);
@@ -71,20 +71,20 @@ export default function ProjectDetail() {
     setDevelopers(devData ?? []);
     setRisks(riskData ?? []);
     setMilestones(milestoneData ?? []);
-    setUserStories(storyData ?? []);
+    setChecklist(checklistData ?? []);
   }
 
   useEffect(() => { load(); }, [id]);
 
   function startEditProject() {
     if (!project) return;
-    setProjectEditForm({ name: project.name, description: project.description ?? '', start_date: project.start_date ?? '', end_date: project.end_date ?? '' });
+    setProjectEditForm({ name: project.name, description: project.description ?? '', start_date: project.start_date ?? '', end_date: project.end_date ?? '', jira_url: project.jira_url ?? '' });
     setEditingProject(true);
     setEditingState(false);
   }
 
   async function saveProjectEdit() {
-    await supabase.from('projects').update({ name: projectEditForm.name, description: projectEditForm.description || null, start_date: projectEditForm.start_date || null, end_date: projectEditForm.end_date || null }).eq('id', id);
+    await supabase.from('projects').update({ name: projectEditForm.name, description: projectEditForm.description || null, start_date: projectEditForm.start_date || null, end_date: projectEditForm.end_date || null, jira_url: projectEditForm.jira_url || null }).eq('id', id);
     setEditingProject(false);
     load();
   }
@@ -121,37 +121,30 @@ export default function ProjectDetail() {
     }});
   }
 
-  async function addStory() {
-    if (!storyForm.title.trim()) return;
-    await supabase.from('user_stories').insert({ title: storyForm.title, acceptance_criteria: storyForm.acceptance_criteria || null, milestone_id: storyForm.milestone_id || null, status: storyForm.status, project_id: id });
-    setStoryForm({ title: '', acceptance_criteria: '', milestone_id: '', status: 'backlog' });
-    setShowStoryForm(false);
+  async function addChecklistItem() {
+    if (!checklistInput.trim()) return;
+    await supabase.from('user_stories').insert({ title: checklistInput, status: 'todo', project_id: id });
+    setChecklistInput('');
+    setShowChecklistForm(false);
     load();
   }
 
-  async function saveStoryEdit() {
-    if (!editingStoryId) return;
-    await supabase.from('user_stories').update({ title: storyEditForm.title, acceptance_criteria: storyEditForm.acceptance_criteria || null, milestone_id: storyEditForm.milestone_id || null, status: storyEditForm.status }).eq('id', editingStoryId);
-    setEditingStoryId(null);
+  async function toggleChecklistItem(itemId: string, done: boolean) {
+    await supabase.from('user_stories').update({ status: done ? 'todo' : 'done' }).eq('id', itemId);
     load();
   }
 
-  async function updateStoryStatus(storyId: string, status: UserStoryStatus) {
-    await supabase.from('user_stories').update({ status }).eq('id', storyId);
-    load();
-  }
-
-  function deleteStory(storyId: string) {
-    setConfirm({ message: 'Delete this user story?', onConfirm: async () => {
-      await supabase.from('user_stories').delete().eq('id', storyId);
+  function deleteChecklistItem(itemId: string) {
+    setConfirm({ message: 'Delete this checklist item?', onConfirm: async () => {
+      await supabase.from('user_stories').delete().eq('id', itemId);
       setConfirm(null); load();
     }});
   }
 
   async function addTask() {
     if (!taskForm.title.trim()) return;
-    await supabase.from('tasks').insert({ title: taskForm.title, description: taskForm.description || null, developer_id: taskForm.developer_id || null, status: taskForm.status, due_date: taskForm.due_date || null, user_story_id: taskForm.user_story_id || null, project_id: id });
-    setTaskForm({ title: '', description: '', developer_id: '', status: 'todo', due_date: '', user_story_id: '' });
+    await supabase.from('tasks').insert({ title: taskForm.title, description: taskForm.description || null, developer_id: taskForm.developer_id || null, status: taskForm.status, due_date: taskForm.due_date || null, project_id: id });
+    setTaskForm({ title: '', description: '', developer_id: '', status: 'todo', due_date: '' });
     setShowTaskForm(false);
     load();
   }
@@ -220,6 +213,7 @@ export default function ProjectDetail() {
   if (!project) return <div className="empty">Loading...</div>;
 
   const milestonesDone = milestones.filter(m => m.completed).length;
+  const checklistDone = checklist.filter(c => c.status === 'done').length;
 
   return (
     <div>
@@ -237,6 +231,7 @@ export default function ProjectDetail() {
                 <span>→</span>
                 <input type="date" value={projectEditForm.end_date} onChange={e => setProjectEditForm(f => ({ ...f, end_date: e.target.value }))} />
               </div>
+              <input className="edit-sub" placeholder="Jira board URL" value={projectEditForm.jira_url} onChange={e => setProjectEditForm(f => ({ ...f, jira_url: e.target.value }))} />
             </div>
           ) : (
             <>
@@ -245,6 +240,7 @@ export default function ProjectDetail() {
               <div className="meta">
                 {project.start_date && <span>{project.start_date}</span>}
                 {project.end_date && <span> → {project.end_date}</span>}
+                {project.jira_url && <span> · <a href={project.jira_url} target="_blank" rel="noopener noreferrer" className="jira-link">Jira ↗</a></span>}
               </div>
             </>
           )}
@@ -332,92 +328,38 @@ export default function ProjectDetail() {
         </div>
       </section>
 
-      {/* User Stories */}
+      {/* Checklist */}
       <section className="section">
         <div className="section-header">
-          <h2>User Stories</h2>
-          <button className="btn" onClick={() => setShowStoryForm(s => !s)}>+ Add Story</button>
+          <h2>
+            Checklist
+            {checklist.length > 0 && <span className="section-count">{checklistDone}/{checklist.length}</span>}
+          </h2>
+          <button className="btn" onClick={() => setShowChecklistForm(s => !s)}>+ Add Item</button>
         </div>
-        {showStoryForm && (
+        {showChecklistForm && (
           <div className="form-card">
-            <input placeholder="As a [user], I want to..." value={storyForm.title} onChange={e => setStoryForm(f => ({ ...f, title: e.target.value }))} />
-            <textarea placeholder="Acceptance criteria" value={storyForm.acceptance_criteria} onChange={e => setStoryForm(f => ({ ...f, acceptance_criteria: e.target.value }))} />
-            <select value={storyForm.milestone_id} onChange={e => setStoryForm(f => ({ ...f, milestone_id: e.target.value }))}>
-              <option value="">No milestone</option>
-              {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-            </select>
-            <select value={storyForm.status} onChange={e => setStoryForm(f => ({ ...f, status: e.target.value as UserStoryStatus }))}>
-              {USER_STORY_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <input
+              placeholder="Checklist item"
+              value={checklistInput}
+              onChange={e => setChecklistInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addChecklistItem(); }}
+            />
             <div className="form-actions">
-              <button className="btn" onClick={addStory}>Save</button>
-              <button className="btn-ghost" onClick={() => setShowStoryForm(false)}>Cancel</button>
+              <button className="btn" onClick={addChecklistItem}>Save</button>
+              <button className="btn-ghost" onClick={() => setShowChecklistForm(false)}>Cancel</button>
             </div>
           </div>
         )}
-        <div className="log-list">
-          {userStories.map(s => {
-            const expanded = expandedStoryIds.has(s.id);
-            const storyTasks = tasks.filter(t => t.user_story_id === s.id);
-            return (
-              <div key={s.id} className="log-entry">
-                {editingStoryId === s.id ? (
-                  <div className="log-entry-edit">
-                    <input value={storyEditForm.title} onChange={e => setStoryEditForm(f => ({ ...f, title: e.target.value }))} />
-                    <textarea placeholder="Acceptance criteria" value={storyEditForm.acceptance_criteria} onChange={e => setStoryEditForm(f => ({ ...f, acceptance_criteria: e.target.value }))} />
-                    <select value={storyEditForm.milestone_id} onChange={e => setStoryEditForm(f => ({ ...f, milestone_id: e.target.value }))}>
-                      <option value="">No milestone</option>
-                      {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-                    </select>
-                    <select value={storyEditForm.status} onChange={e => setStoryEditForm(f => ({ ...f, status: e.target.value as UserStoryStatus }))}>
-                      {USER_STORY_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
-                    </select>
-                    <div className="form-actions">
-                      <button className="btn" onClick={saveStoryEdit}>Save</button>
-                      <button className="btn-ghost" onClick={() => setEditingStoryId(null)}>Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="log-meta" onClick={() => toggleStory(s.id)}>
-                      <span className={`badge story-${s.status}`}>{s.status}</span>
-                      <span className="story-title">{s.title}</span>
-                      {s.milestone && <span className="story-milestone">{s.milestone.title}</span>}
-                      {storyTasks.length > 0 && (
-                        <span className="sub" style={{ fontSize: 11 }}>
-                          {storyTasks.filter(t => t.status === 'done').length}/{storyTasks.length} tasks
-                        </span>
-                      )}
-                      {expanded && <>
-                        <button className="btn-ghost sm" onClick={e => { e.stopPropagation(); setEditingStoryId(s.id); setStoryEditForm({ title: s.title, acceptance_criteria: s.acceptance_criteria ?? '', milestone_id: s.milestone_id ?? '', status: s.status }); }}>Edit</button>
-                        <select className="story-status-select" value={s.status} onClick={e => e.stopPropagation()} onChange={e => updateStoryStatus(s.id, e.target.value as UserStoryStatus)}>
-                          {USER_STORY_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
-                        </select>
-                        <button className="log-delete" onClick={e => { e.stopPropagation(); deleteStory(s.id); }} title="Delete">×</button>
-                      </>}
-                      <span className="log-toggle">{expanded ? '▲' : '▼'}</span>
-                    </div>
-                    {expanded && (
-                      <div className="story-body">
-                        {s.acceptance_criteria && <div className="log-notes">{s.acceptance_criteria}</div>}
-                        {storyTasks.length > 0 && (
-                          <div className="story-tasks">
-                            {storyTasks.map(t => (
-                              <div key={t.id} className="story-task-item">
-                                <span className={`badge status-${t.status}`}>{t.status}</span>
-                                <span className="sub">{t.title}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-          {userStories.length === 0 && <div className="empty">No user stories added</div>}
+        <div className="milestone-list">
+          {checklist.map(c => (
+            <div key={c.id} className={`milestone-item ${c.status === 'done' ? 'milestone-done' : ''}`}>
+              <input type="checkbox" checked={c.status === 'done'} onChange={() => toggleChecklistItem(c.id, c.status === 'done')} className="milestone-check" />
+              <span className="milestone-title">{c.title}</span>
+              <button className="log-delete" onClick={() => deleteChecklistItem(c.id)} title="Delete">×</button>
+            </div>
+          ))}
+          {checklist.length === 0 && <div className="empty">No checklist items</div>}
         </div>
       </section>
 
@@ -435,12 +377,6 @@ export default function ProjectDetail() {
               <option value="">Unassigned</option>
               {developers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-            {userStories.length > 0 && (
-              <select value={taskForm.user_story_id} onChange={e => setTaskForm(f => ({ ...f, user_story_id: e.target.value }))}>
-                <option value="">No user story</option>
-                {userStories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-              </select>
-            )}
             <input type="date" placeholder="Due date" value={taskForm.due_date} onChange={e => setTaskForm(f => ({ ...f, due_date: e.target.value }))} />
             <select value={taskForm.status} onChange={e => setTaskForm(f => ({ ...f, status: e.target.value as TaskStatus }))}>
               {TASK_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -452,15 +388,12 @@ export default function ProjectDetail() {
           </div>
         )}
         <table className="table">
-          <thead><tr><th>Title</th><th>Assignee</th><th>Story</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Title</th><th>Assignee</th><th>Due</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {tasks.map(t => (
               <tr key={t.id}>
                 <td>{t.title}{t.description && <span className="sub"> — {t.description}</span>}</td>
                 <td className="sub">{t.developer?.name ?? '—'}</td>
-                <td className="sub" style={{ fontSize: 11 }}>
-                  {t.user_story_id ? (userStories.find(s => s.id === t.user_story_id)?.title ?? '—') : '—'}
-                </td>
                 <td className={t.due_date && t.due_date < today ? 'overdue-text' : 'sub'}>
                   {t.due_date ?? '—'}
                 </td>
@@ -474,7 +407,7 @@ export default function ProjectDetail() {
                 </td>
               </tr>
             ))}
-            {tasks.length === 0 && <tr><td colSpan={6} className="empty">No actions</td></tr>}
+            {tasks.length === 0 && <tr><td colSpan={5} className="empty">No actions</td></tr>}
           </tbody>
         </table>
       </section>

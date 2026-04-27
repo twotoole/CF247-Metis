@@ -2,7 +2,6 @@ export type ProjectState = 'pre-production' | 'production' | 'post-production';
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type Severity = 'low' | 'medium' | 'high';
 export type RequestStatus = 'pending' | 'in-progress' | 'done';
-export type UserStoryStatus = 'backlog' | 'in-progress' | 'done' | 'accepted';
 
 export interface Developer {
   id: string;
@@ -17,6 +16,7 @@ export interface Project {
   name: string;
   description: string | null;
   prd: string | null;
+  jira_url: string | null;
   state: ProjectState;
   start_date: string | null;
   end_date: string | null;
@@ -54,17 +54,6 @@ export interface Milestone {
   created_at: string;
 }
 
-export interface UserStory {
-  id: string;
-  project_id: string;
-  milestone_id: string | null;
-  title: string;
-  acceptance_criteria: string | null;
-  status: UserStoryStatus;
-  sort_order: number | null;
-  created_at: string;
-  milestone?: { id: string; title: string } | null;
-}
 
 export interface ProjectLog {
   id: string;
