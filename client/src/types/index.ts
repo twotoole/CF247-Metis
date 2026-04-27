@@ -2,6 +2,7 @@ export type ProjectState = 'pre-production' | 'production' | 'post-production';
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type Severity = 'low' | 'medium' | 'high';
 export type RequestStatus = 'pending' | 'in-progress' | 'done';
+export type UserStoryStatus = 'backlog' | 'in-progress' | 'done' | 'accepted';
 
 export interface Developer {
   id: string;
@@ -15,10 +16,12 @@ export interface Project {
   id: string;
   name: string;
   description: string | null;
+  prd: string | null;
   state: ProjectState;
   start_date: string | null;
   end_date: string | null;
   archived: boolean;
+  sort_order: number | null;
   created_at: string;
 }
 
@@ -28,6 +31,7 @@ export interface Task {
   developer_id: string | null;
   standup_id: string | null;
   meeting_id: string | null;
+  user_story_id: string | null;
   title: string;
   description: string | null;
   status: TaskStatus;
@@ -38,6 +42,28 @@ export interface Task {
   project?: { id: string; name: string } | null;
   standup?: { id: string; standup_date: string } | null;
   meeting?: { id: string; title: string } | null;
+}
+
+export interface Milestone {
+  id: string;
+  project_id: string;
+  title: string;
+  due_date: string | null;
+  completed: boolean;
+  sort_order: number | null;
+  created_at: string;
+}
+
+export interface UserStory {
+  id: string;
+  project_id: string;
+  milestone_id: string | null;
+  title: string;
+  acceptance_criteria: string | null;
+  status: UserStoryStatus;
+  sort_order: number | null;
+  created_at: string;
+  milestone?: { id: string; title: string } | null;
 }
 
 export interface ProjectLog {

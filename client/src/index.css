@@ -625,6 +625,80 @@ body {
 }
 .dash-source:hover { text-decoration: underline; color: #000; }
 
+/* ── PRD ────────────────────────────────────────────── */
+.prd-content {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  background: #fff;
+  border: 1px solid #ebebeb;
+  padding: 1rem 1.25rem;
+  max-width: 720px;
+}
+
+/* ── Section count ──────────────────────────────────── */
+.section-count {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 10px;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 0.04em;
+}
+
+/* ── Milestones ─────────────────────────────────────── */
+.milestone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.milestone-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.9rem;
+  background: #fff;
+  border: 1px solid #ebebeb;
+  font-size: 13px;
+  transition: border-color 0.15s;
+}
+.milestone-item:hover { border-color: #ccc; }
+.milestone-done .milestone-title { text-decoration: line-through; color: #bbb; }
+
+.milestone-check { cursor: pointer; width: 14px; height: 14px; flex-shrink: 0; }
+.milestone-title { flex: 1; font-weight: 500; }
+
+/* ── User Stories ───────────────────────────────────── */
+.story-title { flex: 1; font-size: 13px; font-weight: 500; color: #111; }
+.story-milestone {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  background: #f4f4f4;
+  border: 1px solid #e8e8e8;
+  padding: 0.1rem 0.4rem;
+}
+.story-body { padding: 0.4rem 0 0.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.story-tasks { display: flex; flex-direction: column; gap: 0.3rem; padding-top: 0.4rem; border-top: 1px solid #efefef; }
+.story-task-item { display: flex; align-items: center; gap: 0.5rem; font-size: 12px; }
+.story-status-select {
+  border: 1px solid #e0e0e0;
+  padding: 0.15rem 0.4rem;
+  font-size: 11px;
+  font-family: inherit;
+  background: #fff;
+}
+
+/* ── Story status badges ────────────────────────────── */
+.badge.story-backlog { border-color: #ddd; color: #bbb; }
+.badge.story-in-progress { border-style: dashed; color: #555; }
+.badge.story-done { background: #f0f0f0; color: #555; }
+.badge.story-accepted { background: #111; color: #fff; border-color: #111; }
+
 /* ── Overdue ────────────────────────────────────────── */
 .overdue-text { color: #111; font-weight: 700; font-size: 12px; }
 .overdue-badge {
